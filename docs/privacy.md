@@ -1,0 +1,37 @@
+# Confidentialité (privacy by design)
+
+Les traces GPS révèlent le domicile, le travail et les habitudes. Une carte d'exploration
+les révèle encore plus vite (la zone la plus explorée est presque toujours autour de chez soi).
+Ce sont des données personnelles au sens du RGPD.
+
+## Décisions prises à J0
+
+- **Aucune permission, aucun réseau** : l'app ne collecte rien pour l'instant.
+- **Aucune sauvegarde système** : `data_extraction_rules.xml` et `backup_rules.xml` excluent
+  toutes les données de la sauvegarde cloud Google et du transfert d'appareil. À rouvrir
+  uniquement par une décision explicite et visible de l'utilisateur.
+- **Concept `PrivacyZone`** dans le domaine (centre + rayon, test d'appartenance).
+- **La confidentialité précède le social** : aucune fonctionnalité de partage avant que les
+  zones privées soient complètes.
+
+## Questions ouvertes (à trancher avant le premier partage / la première sync)
+
+| Donnée dans une zone privée | Proposition |
+|---|---|
+| Enregistrée localement | Oui, brute (nécessaire au recalcul), sur l'appareil uniquement |
+| Affichée à l'utilisateur lui-même | Oui sur sa propre carte, avec un indicateur de zone |
+| Affichée à d'autres | Jamais : tracé tronqué à l'entrée/sortie de la zone |
+| Exportée (GPX…) | Tronquée par défaut, option explicite pour l'export complet |
+| Synchronisée (cloud futur) | À décider : tronquée, ou chiffrée de bout en bout |
+| Comptée pour l'exploration | Oui pour sa progression personnelle, sans exposer les cellules |
+
+Points de vigilance : un rayon fixe centré sur le domicile se retrouve par triangulation —
+préférer un décalage aléatoire du centre et/ou des rayons variables ; les cellules
+explorées publiques peuvent trahir une zone même avec un tracé masqué.
+
+## RGPD (à préparer avant toute collecte)
+
+Base légale et consentement explicites, durée de conservation, droit à l'effacement
+(suppression complète de l'historique), droit à la portabilité (export), registre des traitements
+si backend. Rien n'est envoyé à un tiers sans le dire (y compris le fournisseur de tuiles,
+qui voit la zone consultée).
