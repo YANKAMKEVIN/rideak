@@ -1,0 +1,35 @@
+# Gradle / Kotlin
+.gradle
+.kotlin
+**/build/
+!src/**/build/
+
+# IDE
+.idea
+*.iml
+.DS_Store
+
+# Local config & secrets (never commit)
+local.properties
+secrets.properties
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+
+# Android
+captures
+.externalNativeBuild
+.cxx
+
+# Xcode
+xcuserdata
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+**/xcshareddata/WorkspaceSettings.xcsettings
+
+# Logs
+*.log
