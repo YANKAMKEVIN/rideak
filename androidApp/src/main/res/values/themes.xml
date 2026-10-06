@@ -1,0 +1,6 @@
+<resources>
+    <!-- Night window background avoids a white flash before Compose draws. -->
+    <style name="Theme.Rideak" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/rideak_night</item>
+    </style>
+</resources>
