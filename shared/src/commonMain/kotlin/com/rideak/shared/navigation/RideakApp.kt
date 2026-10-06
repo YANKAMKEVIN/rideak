@@ -1,5 +1,6 @@
 package com.rideak.shared.navigation
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -33,6 +34,8 @@ fun RideakApp() {
 
         Scaffold(
             containerColor = RideakTheme.colors.night,
+            // Screens handle the status bar themselves: Home draws its hero under it.
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
                 RideakBottomBar(

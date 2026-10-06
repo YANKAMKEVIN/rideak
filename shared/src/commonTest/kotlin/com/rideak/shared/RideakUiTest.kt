@@ -29,7 +29,7 @@ class RideakUiTest {
     fun bottomBarNavigatesBetweenTopLevelDestinations() = runComposeUiTest {
         setContent { RideakApp() }
 
-        onNodeWithText("Yo ! Prêt à explorer ?").assertIsDisplayed()
+        onNodeWithText("Explorer autour de moi").assertIsDisplayed()
         onNodeWithText("Carte").performClick()
         onNodeWithText("Ta world map personnelle se dévoilera ici.").assertIsDisplayed()
     }

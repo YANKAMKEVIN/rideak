@@ -7,12 +7,17 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import com.rideak.shared.designsystem.RideakTheme
 
 data class BottomBarItem(val label: String, val icon: ImageVector)
 
-/** Labels are always shown: an icon alone is not enough to understand a destination. */
+/**
+ * Labels are always shown: an icon alone is not enough to understand a destination.
+ * Selection is shown by brightness AND weight (not colour alone), without Material's indicator pill.
+ */
 @Composable
 fun RideakBottomBar(
     items: List<BottomBarItem>,
@@ -22,16 +27,17 @@ fun RideakBottomBar(
 ) {
     NavigationBar(modifier = modifier, containerColor = RideakTheme.colors.surface) {
         items.forEachIndexed { index, item ->
+            val selected = index == selectedIndex
             NavigationBarItem(
-                selected = index == selectedIndex,
+                selected = selected,
                 onClick = { onSelect(index) },
                 icon = { Icon(item.icon, contentDescription = null) },
-                label = { Text(item.label) },
+                label = { Text(item.label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
                 alwaysShowLabel = true,
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = RideakTheme.colors.onAccent,
-                    selectedTextColor = RideakTheme.colors.textPrimary,
-                    indicatorColor = RideakTheme.colors.exploration,
+                    selectedIconColor = RideakTheme.colors.mangaWhite,
+                    selectedTextColor = RideakTheme.colors.mangaWhite,
+                    indicatorColor = Color.Transparent,
                     unselectedIconColor = RideakTheme.colors.textSecondary,
                     unselectedTextColor = RideakTheme.colors.textSecondary,
                 ),
