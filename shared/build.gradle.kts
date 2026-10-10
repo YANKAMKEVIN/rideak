@@ -34,7 +34,11 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            api(projects.core.exploration)
+            api(projects.core.data)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.androidx.lifecycle.viewmodelCompose)
+            implementation(libs.kotlinx.datetime)
 
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -44,6 +48,10 @@ kotlin {
             implementation(libs.compose.material.icons.core)
             implementation(libs.navigation.compose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+        }
+        androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.koin.android)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

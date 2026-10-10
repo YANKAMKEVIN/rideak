@@ -25,10 +25,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,20 +44,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.rideak.exploration.ExplorationProgress
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.AdventureButton
-import com.rideak.shared.designsystem.components.ExplorationProgressBar
+import com.rideak.shared.format.formatKilometersShort
 import com.rideak.shared.designsystem.icons.RideakIcons
-import kotlinx.coroutines.launch
-
-// Placeholder values until rides are recorded (J1+). Same numbers as the mockup.
-private val demoProgress = ExplorationProgress(exploredRideableCells = 12, totalRideableCells = 100)
 
 /** Home, laid out after mockup "2. HOME". */
 @Composable
-fun HomeScreen(snackbarHostState: SnackbarHostState) {
-    val scope = rememberCoroutineScope()
+fun HomeScreen(onRide: () -> Unit, viewModel: HomeViewModel = koinViewModel()) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val spacing = RideakTheme.spacing
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Hero()
@@ -66,12 +62,17 @@ fun HomeScreen(snackbarHostState: SnackbarHostState) {
         ) {
             SearchField()
             CategoryRow()
-            ExplorationProgressBar(regionName = "Cergy-Pontoise", progress = demoProgress)
-            StatsRow()
+            TerritoryCard(state.exploredCells)
+            StatsRow(state)
+            val active = state.activeRide
             AdventureButton(
-                text = "PARTIR\nÀ L'AVENTURE",
+                text = when {
+                    active == null -> "PARTIR\nÀ L'AVENTURE"
+                    active.recovered -> "SORTIE\nINTERROMPUE"
+                    else -> "RETOUR\nÀ LA SORTIE"
+                },
                 icon = RideakIcons.Bike,
-                onClick = { scope.launch { snackbarHostState.showSnackbar("Le suivi GPS arrive au prochain jalon.") } },
+                onClick = onRide,
             )
         }
     }
@@ -148,14 +149,46 @@ private fun Category(label: String, icon: ImageVector, color: Color) {
 }
 
 @Composable
-private fun StatsRow() {
+private fun TerritoryCard(exploredCells: Int) {
+    val colors = RideakTheme.colors
+    val subtitle = if (exploredCells == 0) "Ta première sortie dévoilera ta carte" else "$exploredCells zones explorées"
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, RideakTheme.shapes.medium)
+            .border(1.dp, colors.lightSurface.copy(alpha = 0.25f), RideakTheme.shapes.medium)
+            .padding(RideakTheme.spacing.m)
+            .clearAndSetSemantics { contentDescription = "Mon territoire, $subtitle" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            Modifier.size(44.dp).background(colors.nature.copy(alpha = 0.15f), RideakTheme.shapes.pill),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(RideakIcons.Leaf, contentDescription = null, tint = colors.nature, modifier = Modifier.size(28.dp))
+        }
+        Column {
+            Text("Mon territoire", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatsRow(state: HomeUiState) {
     val c = RideakTheme.colors
+    val km = formatKilometersShort(state.totalDistanceMeters)
     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
-        Stat("147", "km parcourus", c.textPrimary, "147 kilomètres parcourus", Modifier.weight(1f))
+        Stat(km, "km parcourus", c.textPrimary, "$km kilomètres parcourus", Modifier.weight(1f))
         StatDivider()
-        Stat("8", "lieux découverts", c.nature, "8 lieux découverts", Modifier.weight(1f))
+        Stat("${state.rideCount}", "sorties", c.nature, "${state.rideCount} sorties", Modifier.weight(1f))
         StatDivider()
-        Stat("4", "lieux favoris", c.action, "4 lieux favoris", Modifier.weight(1f))
+        Stat("${state.spotCount}", "spots ❤️", c.action, "${state.spotCount} spots favoris", Modifier.weight(1f))
     }
 }
 

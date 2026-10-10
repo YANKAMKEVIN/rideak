@@ -70,6 +70,32 @@ object RideakIcons {
         }
     }
 
+    val Pause: ImageVector by lazy {
+        filled("Pause") { rect(6f, 4f, 4f, 16f); rect(14f, 4f, 4f, 16f) }
+    }
+
+    val Stop: ImageVector by lazy {
+        filled("Stop") { rect(5f, 5f, 14f, 14f) }
+    }
+
+    val Play: ImageVector by lazy {
+        filled("Play") { moveTo(7f, 4f); lineTo(20f, 12f); lineTo(7f, 20f); close() }
+    }
+
+    val Heart: ImageVector by lazy {
+        filled("Heart") {
+            moveTo(12f, 21f)
+            lineTo(10.6f, 19.7f)
+            curveTo(5.4f, 15f, 2f, 11.9f, 2f, 8.2f)
+            curveTo(2f, 5.1f, 4.4f, 2.8f, 7.5f, 2.8f)
+            curveTo(9.2f, 2.8f, 10.9f, 3.6f, 12f, 4.9f)
+            curveTo(13.1f, 3.6f, 14.8f, 2.8f, 16.5f, 2.8f)
+            curveTo(19.6f, 2.8f, 22f, 5.1f, 22f, 8.2f)
+            curveTo(22f, 11.9f, 18.6f, 15f, 13.4f, 19.7f)
+            close()
+        }
+    }
+
     private fun PathBuilder.rect(x: Float, y: Float, w: Float, h: Float) {
         moveTo(x, y); horizontalLineToRelative(w); verticalLineToRelative(h); horizontalLineToRelative(-w); close()
     }
