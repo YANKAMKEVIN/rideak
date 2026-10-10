@@ -1,4 +1,7 @@
-# Architecture GPS (future — rien d'implémenté à J0)
+# Architecture GPS
+
+> **État J1 : implémentée** (voir `ride-recording.md`). Reste à faire : auto-pause, batterie adaptative,
+> test terrain sur vraie sortie.
 
 ## Forme
 

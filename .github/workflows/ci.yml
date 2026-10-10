@@ -23,7 +23,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v5
       - name: Build, lint and test
-        run: ./gradlew :core:exploration:jvmTest :androidApp:assembleDebug :androidApp:lintDebug --console=plain
+        run: ./gradlew :core:exploration:jvmTest :core:ride:jvmTest :core:data:jvmTest :androidApp:assembleDebug :androidApp:lintDebug --console=plain
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v4
@@ -31,7 +31,7 @@ jobs:
           name: android-reports
           path: |
             androidApp/build/reports/
-            core/exploration/build/reports/
+            core/*/build/reports/
 
   ios:
     # macOS minutes cost 10× on private repos: run on main and on demand only.
@@ -47,7 +47,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v5
       - name: Test on iOS simulator
-        run: ./gradlew :core:exploration:iosSimulatorArm64Test :shared:iosSimulatorArm64Test --console=plain
+        run: ./gradlew :core:exploration:iosSimulatorArm64Test :core:ride:iosSimulatorArm64Test :core:data:compileKotlinIosSimulatorArm64 :shared:iosSimulatorArm64Test --console=plain
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v4
@@ -55,4 +55,4 @@ jobs:
           name: ios-reports
           path: |
             shared/build/reports/
-            core/exploration/build/reports/
+            core/*/build/reports/

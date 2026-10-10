@@ -4,9 +4,13 @@ Les traces GPS révèlent le domicile, le travail et les habitudes. Une carte d'
 les révèle encore plus vite (la zone la plus explorée est presque toujours autour de chez soi).
 Ce sont des données personnelles au sens du RGPD.
 
-## Décisions prises à J0
+## Décisions prises (J0–J1)
 
-- **Aucune permission, aucun réseau** : l'app ne collecte rien pour l'instant.
+- **Position uniquement pendant une sortie**, demandée au moment de partir, avec explication.
+  Pas de localisation en arrière-plan (Android) ni « Toujours » (iOS) : le foreground service et le
+  mode d'arrière-plan `location` couvrent l'écran éteint, avec indicateur visible pour l'utilisateur.
+- **Aucun réseau** : traces, spots et sorties restent dans la base locale de l'appareil.
+- Position approximative : expliquée (distance et exploration fausses), l'utilisateur choisit.
 - **Aucune sauvegarde système** : `data_extraction_rules.xml` et `backup_rules.xml` excluent
   toutes les données de la sauvegarde cloud Google et du transfert d'appareil. À rouvrir
   uniquement par une décision explicite et visible de l'utilisateur.

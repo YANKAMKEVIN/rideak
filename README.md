@@ -13,14 +13,17 @@ Ce n'est pas un clone de Strava : la vitesse n'est jamais récompensée.
 
 Kotlin Multiplatform · Compose Multiplatform (Android + iOS) · Material 3 · Coroutines/Flow ·
 Navigation Compose (routes typées) · Gradle Kotlin DSL + Version Catalog.
-Plus tard : base locale, DataStore, Location, MapLibre (voir `docs/maps-decision.md`).
+Room KMP (SQLite embarqué) · Koin · kotlinx-datetime · Play Services Location / CoreLocation.
+Plus tard : MapLibre (voir `docs/maps-decision.md`).
 
 ## Architecture
 
 ```
-:core:exploration   domaine pur (aucune dépendance Android/Compose/carte/GPS)
+:core:exploration   domaine d'exploration pur (aucune dépendance Android/Compose/carte/GPS)
+:core:ride          métriques de sortie pures (distance, vitesses, dénivelé, filtres GPS)
+:core:data          Room, sources de localisation, enregistreur de sortie
 :shared             UI Compose Multiplatform : design system, navigation, écrans
-:androidApp         hôte Android
+:androidApp         hôte Android (+ foreground service de sortie)
 iosApp/             hôte iOS (Xcode)
 ```
 
@@ -53,7 +56,8 @@ ou `xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -sdk iphonesimula
 ## Tests
 
 ```bash
-./gradlew :core:exploration:allTests       # domaine, JVM + simulateur iOS
+./gradlew :core:exploration:allTests :core:ride:allTests   # domaines purs, JVM + simulateur iOS
+./gradlew :core:data:jvmTest               # enregistreur + Room
 ./gradlew :shared:iosSimulatorArm64Test    # tests UI Compose
 ./gradlew :androidApp:lintDebug            # lint
 ```
@@ -63,8 +67,8 @@ tests iOS (domaine + UI Compose) sur macOS, sur `main` et à la demande seulemen
 
 ## Roadmap
 
-- **J0** — fondations (ce jalon) ✅
-- **J1** — enregistrement d'une sortie : GPS Android/iOS, recorder testable, persistance, Ride mode
+- **J0** — fondations ✅
+- **J1** — enregistrement d'une sortie : GPS Android/iOS, recorder testable, persistance, Ride mode ✅
 - Spike carte stylisée MapLibre
 - Moteur d'exploration : interpolation, dérive, filtres ; premières régions précalculées
 - Découverte de lieux, favoris, progression, puis gamification
@@ -79,5 +83,7 @@ tests iOS (domaine + UI Compose) sur macOS, sur `main` et à la demande seulemen
 
 ## Current Milestone
 
-J0 — fondations : projet multiplateforme fonctionnel, thème, navigation minimale,
-domaine d'exploration typé et testé. Pas de GPS, pas de carte, pas de données OSM.
+J1 — enregistrer une vraie sortie : GPS Android (foreground service) et iOS (mode arrière-plan),
+métriques filtrées et rejouables, persistance Room par lots, reprise après process tué, écran En sortie,
+résumé, historique, ❤️ spots, sortie simulée (debug). Détails : [`docs/ride-recording.md`](docs/ride-recording.md).
+Pas encore de carte.

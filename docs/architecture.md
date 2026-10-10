@@ -1,14 +1,23 @@
 # Architecture
 
-## Modules (J0)
+## Modules (J1)
 
 ```
-:core:exploration   KMP pur (jvm, iosArm64, iosSimulatorArm64) — domaine d'exploration
+:core:exploration   KMP pur (jvm, ios) — domaine d'exploration
         ▲
-:shared             KMP + Compose Multiplatform (android, ios) — design system, navigation, écrans
+:core:ride          KMP pur (jvm, ios) — métriques de sortie, filtres GPS
+        ▲
+:core:data          KMP (android, ios, jvm*) — Room, LocationSource, RideRecorder, Koin dataModule
+        ▲
+:shared             KMP + Compose Multiplatform (android, ios) — design system, navigation, écrans, ViewModels
         ▲                         ▲
-:androidApp (Activity)      iosApp/ (SwiftUI → ComposeUIViewController)
+:androidApp (Activity, Application, RideTrackingService)    iosApp/ (SwiftUI → ComposeUIViewController)
 ```
+
+\* la cible `jvm` de `:core:data` n'existe que pour tester l'enregistreur et Room sur n'importe quel runner CI.
+
+`:core:ride` et `:core:data` ont été extraits en J1 selon la règle ci-dessous : `:core:ride` reste pur
+(rejouable, testé sans appareil) ; `:core:data` isole les dépendances lourdes (Room/KSP, Play Services, CoreLocation).
 
 **Pourquoi un module Gradle pour l'exploration ?** C'est le seul endroit où la frontière est
 *imposée par le compilateur* : `:core:exploration` n'a aucune dépendance Android, Compose, carte ou
@@ -34,8 +43,8 @@ Candidats probables : `:core:design-system`, `:data:location`, `:feature:map`.
 ## Principes
 
 - UI → Domain → Data, sans cérémonie : pas de UseCase vide, pas d'interface à implémentation unique.
-- Pas d'injection de dépendances à J0 (rien à injecter). Koin, déjà maîtrisé sur FRIDIA,
-  arrivera avec la première vraie dépendance (base de données, localisation).
+- Injection : Koin (depuis J1). `dataModule` + `platformDataModule` (expect/actual) dans `:core:data`,
+  ViewModels dans `:shared`, pièces propres à l'hôte (foreground service, `AppInfo`) dans chaque app.
 - Les SDK carte/GPS ne traversent jamais la frontière du domaine : ils sont convertis en
   `GeoPoint` / `TrackPoint` dans la couche data.
 - Pas de convention plugins (`build-logic`) tant qu'il y a 3 modules.
@@ -45,7 +54,9 @@ Candidats probables : `:core:design-system`, `:data:location`, `:feature:map`.
 | Où | Quoi | Commande |
 |---|---|---|
 | `core/exploration/src/commonTest` | domaine pur | `./gradlew :core:exploration:allTests` (JVM + simulateur iOS) |
-| `shared/src/commonTest` | UI Compose (`runComposeUiTest`) | `./gradlew :shared:iosSimulatorArm64Test` |
+| `core/ride/src/commonTest` | métriques, rejeu de traces synthétiques | `./gradlew :core:ride:allTests` |
+| `core/data/src/jvmTest` | enregistreur + Room en mémoire (pause, reprise, crash, ❤️) | `./gradlew :core:data:jvmTest` |
+| `shared/src/commonTest` | UI Compose (`runComposeUiTest`) + formats | `./gradlew :shared:iosSimulatorArm64Test` |
 | Android lint | | `./gradlew :androidApp:lintDebug` |
 
 Les tests UI tournent sur le simulateur iOS car `:shared` n'a pas de cible JVM/desktop :
