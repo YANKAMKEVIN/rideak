@@ -33,5 +33,7 @@ plugins {
 }
 
 include(":core:exploration")
+include(":core:ride")
+include(":core:data")
 include(":shared")
 include(":androidApp")
