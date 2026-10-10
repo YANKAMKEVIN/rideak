@@ -58,6 +58,9 @@ ou `xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -sdk iphonesimula
 ./gradlew :androidApp:lintDebug            # lint
 ```
 
+CI (GitHub Actions, `.github/workflows/ci.yml`) : build Android + lint + tests du domaine à chaque push et PR ;
+tests iOS (domaine + UI Compose) sur macOS, sur `main` et à la demande seulement (minutes macOS coûteuses).
+
 ## Roadmap
 
 - **J0** — fondations (ce jalon) ✅

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android build, lint, domain tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build, lint and test
+        run: ./gradlew :core:exploration:jvmTest :androidApp:assembleDebug :androidApp:lintDebug --console=plain
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-reports
+          path: |
+            androidApp/build/reports/
+            core/exploration/build/reports/
+
+  ios:
+    # macOS minutes cost 10× on private repos: run on main and on demand only.
+    if: github.event_name != 'pull_request'
+    name: iOS tests (domain + Compose UI)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test on iOS simulator
+        run: ./gradlew :core:exploration:iosSimulatorArm64Test :shared:iosSimulatorArm64Test --console=plain
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-reports
+          path: |
+            shared/build/reports/
+            core/exploration/build/reports/
