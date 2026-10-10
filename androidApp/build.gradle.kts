@@ -8,6 +8,7 @@ plugins {
 dependencies {
     implementation(projects.shared)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.koin.android)
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
 }
@@ -22,6 +23,9 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.0.1"
+    }
+    buildFeatures {
+        buildConfig = true
     }
     packaging {
         resources {
