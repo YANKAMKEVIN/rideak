@@ -70,7 +70,7 @@ class RideakUiTest {
         setContent { RideakApp() }
 
         onNodeWithText("Explorer autour de moi").assertIsDisplayed()
-        onNodeWithContentDescription("Mon territoire, Ta première sortie dévoilera ta carte").assertIsDisplayed()
+        onNodeWithContentDescription("Mon territoire, Ta première sortie dévoilera ta carte, prochain palier 10 zones").assertIsDisplayed()
         onNodeWithText("Sorties").performClick()
         onNodeWithText("Aucune sortie pour l'instant. Pars à l'aventure depuis l'accueil !").assertIsDisplayed()
         onNodeWithText("Profil").performClick()

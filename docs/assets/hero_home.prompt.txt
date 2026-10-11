@@ -1,0 +1,33 @@
+# 1) Landscape version
+You are generating a production illustration asset for a mobile cycling app called RIDEAK (manga / modern JRPG art direction).
+
+Two reference images are attached:
+- ref_home_hero.png: a crop of the Home screen mockup. Its hero illustration is THE target: match its composition, mood, palette and style as closely as possible.
+- ref_board.png: the full design board, for the overall art direction.
+
+Use your image generation tool to create ONE image, landscape 1536x1024:
+- Anime / manga key-art style with clean cel shading, vibrant saturated colors, crisp outlines, sunny late-morning light.
+- Foreground, left third: a young cyclist seen from behind (three-quarter back view), messy dark brown hair, red jacket, dark backpack, sitting on a mountain bike on a grassy hilltop, looking at the view. Original character (no existing franchise character, no logo on clothes or bike).
+- Middle and right: a lush green valley with a park and trees, a blue river winding through it with a small footbridge, and a modern French new-town city skyline (white and glass towers, some mid-rise buildings) under a bright blue sky with big white cumulus clouds. Hints of bike paths.
+- Keep the TOP-LEFT area (about 40% width, 35% height) as fairly calm sky so white title text can sit there.
+- The bottom 15% should be darker green foliage (the app fades it into a dark navy UI).
+- Absolutely NO text, letters, numbers, UI, watermark or signature.
+
+When the image is generated, copy the resulting PNG file into the current working directory as `hero_home.png` (use the shell; find it under ~/.codex/generated_images if needed). Then reply with just the final file path.
+
+# 2) Portrait version used in the app (generated from the landscape one + mockup crop)
+You are generating a production illustration asset for a mobile cycling app called RIDEAK (manga / modern JRPG art direction).
+
+Attached:
+- ref_home_hero.png: crop of the Home screen mockup — THE target composition (portrait).
+- hero_home_landscape.png: an illustration we already generated in the right style — keep exactly this character design, palette and rendering style.
+
+Use your image generation tool to create ONE image, PORTRAIT 1024x1536, same scene as hero_home_landscape.png but recomposed like ref_home_hero.png:
+- Top 30%: bright blue sky with white cumulus clouds, calm on the left half so big white title text can sit there.
+- Middle: modern French new-town skyline (white/glass towers) and a lush valley with a blue winding river and a small stone footbridge.
+- Bottom 45%, left side: the same young cyclist seen from behind (messy dark brown hair, red jacket, dark backpack, mountain bike) on a grassy hilltop, large in frame, looking at the city.
+- Bottom 12%: darker green foliage.
+- Anime cel shading, vibrant saturated colors, crisp outlines. Original character, no logos.
+- Absolutely NO text, letters, numbers, UI, watermark or signature.
+
+When generated, copy the PNG into the current working directory as `hero_home_portrait.png` (find it under ~/.codex/generated_images if needed). Reply with just the final path.

@@ -1,5 +1,6 @@
 package com.rideak.shared.feature.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -31,13 +32,21 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import com.rideak.shared.resources.Res
+import com.rideak.shared.resources.hero_home
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -57,8 +66,9 @@ fun HomeScreen(onRide: () -> Unit, viewModel: HomeViewModel = koinViewModel()) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Hero()
         Column(
-            modifier = Modifier.padding(horizontal = spacing.m).offset(y = (-12).dp),
-            verticalArrangement = Arrangement.spacedBy(spacing.m),
+            // The search field overlaps the faded bottom of the illustration, as in the mockup.
+            modifier = Modifier.padding(horizontal = spacing.m).offset(y = (-36).dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             SearchField()
             CategoryRow()
@@ -72,6 +82,7 @@ fun HomeScreen(onRide: () -> Unit, viewModel: HomeViewModel = koinViewModel()) {
                     else -> "RETOUR\nÀ LA SORTIE"
                 },
                 icon = RideakIcons.Bike,
+                minHeight = 64.dp,
                 onClick = onRide,
             )
         }
@@ -81,8 +92,22 @@ fun HomeScreen(onRide: () -> Unit, viewModel: HomeViewModel = koinViewModel()) {
 @Composable
 private fun Hero() {
     // Drawn under the status bar (edge-to-edge); the greeting keeps clear of it.
-    Box(Modifier.fillMaxWidth().height(340.dp)) {
-        HeroLandscape(Modifier.fillMaxSize())
+    Box(Modifier.fillMaxWidth().height(400.dp)) {
+        // Illustration generated from the board's Home hero (prompt in docs/assets/hero_home.prompt.txt).
+        Image(
+            painter = painterResource(Res.drawable.hero_home),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            // Sky + title at the top, city in the middle, the cyclist bottom-left (mockup framing).
+            alignment = BiasAlignment(horizontalBias = 0f, verticalBias = 0.2f),
+            modifier = Modifier.fillMaxSize(),
+        )
+        // Fade into the Night UI below.
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(0.7f to Color.Transparent, 1f to RideakTheme.colors.night),
+            ),
+        )
         val outline = Shadow(RideakTheme.colors.night, Offset(3f, 4f), blurRadius = 6f)
         Column(
             Modifier.windowInsetsPadding(WindowInsets.statusBars)
@@ -137,44 +162,54 @@ private fun CategoryRow() {
 private fun Category(label: String, icon: ImageVector, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
-            Modifier.size(64.dp)
+            Modifier.size(56.dp)
                 .background(RideakTheme.colors.surface, RideakTheme.shapes.pill)
                 .border(1.5.dp, color.copy(alpha = 0.45f), RideakTheme.shapes.pill),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(32.dp))
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(28.dp))
         }
         Text(label, style = MaterialTheme.typography.labelLarge, color = RideakTheme.colors.textPrimary)
     }
 }
 
+/** Exploration milestones: the bar always shows progress toward the next one. */
+private val milestones = listOf(10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000)
+
 @Composable
 private fun TerritoryCard(exploredCells: Int) {
     val colors = RideakTheme.colors
+    val next = milestones.firstOrNull { it > exploredCells } ?: (exploredCells + 1)
+    val previous = milestones.lastOrNull { it <= exploredCells } ?: 0
+    val fraction = ((exploredCells - previous).toFloat() / (next - previous)).coerceIn(0f, 1f)
     val subtitle = if (exploredCells == 0) "Ta première sortie dévoilera ta carte" else "$exploredCells zones explorées"
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.surface, RideakTheme.shapes.medium)
             .border(1.dp, colors.lightSurface.copy(alpha = 0.25f), RideakTheme.shapes.medium)
-            .padding(RideakTheme.spacing.m)
-            .clearAndSetSemantics { contentDescription = "Mon territoire, $subtitle" },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = RideakTheme.spacing.m, vertical = 14.dp)
+            .clearAndSetSemantics {
+                contentDescription = "Mon territoire, $subtitle, prochain palier $next zones"
+                progressBarRangeInfo = ProgressBarRangeInfo(fraction, 0f..1f)
+            },
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(
-            Modifier.size(44.dp).background(colors.nature.copy(alpha = 0.15f), RideakTheme.shapes.pill),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(RideakIcons.Leaf, contentDescription = null, tint = colors.nature, modifier = Modifier.size(28.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                Modifier.size(44.dp).background(colors.nature.copy(alpha = 0.15f), RideakTheme.shapes.pill),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(RideakIcons.Leaf, contentDescription = null, tint = colors.nature, modifier = Modifier.size(28.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text("Mon territoire", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+            }
+            Text("$exploredCells / $next", style = MaterialTheme.typography.labelLarge, color = colors.nature)
         }
-        Column {
-            Text("Mon territoire", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.textSecondary,
-            )
+        Box(Modifier.fillMaxWidth().height(8.dp).background(colors.surfaceRaised, RideakTheme.shapes.pill)) {
+            Box(Modifier.fillMaxWidth(fraction).height(8.dp).background(colors.nature, RideakTheme.shapes.pill))
         }
     }
 }

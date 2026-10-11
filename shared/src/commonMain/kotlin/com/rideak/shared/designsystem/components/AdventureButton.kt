@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.rideak.shared.designsystem.RideakTheme
 
@@ -27,11 +28,12 @@ fun AdventureButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     enabled: Boolean = true,
+    minHeight: Dp = 72.dp,
 ) {
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.fillMaxWidth().heightIn(min = 72.dp),
+        modifier = modifier.fillMaxWidth().heightIn(min = minHeight),
         shape = RideakTheme.shapes.pill,
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
         colors = ButtonDefaults.buttonColors(
