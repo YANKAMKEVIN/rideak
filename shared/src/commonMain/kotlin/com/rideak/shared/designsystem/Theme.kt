@@ -7,7 +7,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 
 private val LocalRideakColors = staticCompositionLocalOf { RideakColors() }
-private val LocalRideakTypography = staticCompositionLocalOf { RideakTypography() }
+private val LocalRideakTypography = staticCompositionLocalOf<RideakTypography> { error("RideakTheme missing") }
 private val LocalRideakSpacing = staticCompositionLocalOf { RideakSpacing() }
 private val LocalRideakShapes = staticCompositionLocalOf { RideakShapes() }
 
@@ -15,7 +15,7 @@ private val LocalRideakShapes = staticCompositionLocalOf { RideakShapes() }
 @Composable
 fun RideakTheme(content: @Composable () -> Unit) {
     val colors = RideakColors()
-    val typography = RideakTypography()
+    val typography = rideakTypography()
     CompositionLocalProvider(
         LocalRideakColors provides colors,
         LocalRideakTypography provides typography,

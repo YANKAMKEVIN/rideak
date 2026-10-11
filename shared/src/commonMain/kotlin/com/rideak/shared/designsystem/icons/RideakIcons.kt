@@ -96,6 +96,55 @@ object RideakIcons {
         }
     }
 
+    /** Distance (mockup: stopwatch outline). */
+    val Stopwatch: ImageVector by lazy {
+        stroked("Stopwatch") {
+            circle(12f, 13.5f, 7.5f)
+            moveTo(10f, 2.5f); horizontalLineTo(14f)
+            moveTo(12f, 2.5f); verticalLineTo(6f)
+            moveTo(12f, 13.5f); lineTo(15f, 10.5f)
+            moveTo(18.5f, 5.5f); lineTo(20f, 7f)
+        }
+    }
+
+    /** Duration (mockup: alarm clock). */
+    val Timer: ImageVector by lazy {
+        stroked("Timer") {
+            circle(12f, 13f, 7.5f)
+            moveTo(12f, 9f); verticalLineTo(13f); lineTo(14.5f, 15f)
+            moveTo(3f, 6f); lineTo(6f, 3.5f)
+            moveTo(21f, 6f); lineTo(18f, 3.5f)
+            moveTo(7f, 20f); lineTo(5.5f, 21.5f)
+            moveTo(17f, 20f); lineTo(18.5f, 21.5f)
+        }
+    }
+
+    /** Speed (mockup: gauge). */
+    val Speedometer: ImageVector by lazy {
+        stroked("Speedometer") {
+            moveTo(3.5f, 17f)
+            arcToRelative(8.5f, 8.5f, 0f, isMoreThanHalf = true, isPositiveArc = true, dx1 = 17f, dy1 = 0f)
+            moveTo(12f, 17f); lineTo(16f, 10.5f)
+            moveTo(3.5f, 17f); horizontalLineTo(6f)
+            moveTo(20.5f, 17f); horizontalLineTo(18f)
+        }
+    }
+
+    /** Elevation (mockup: double peak outline). */
+    val Mountain: ImageVector by lazy {
+        stroked("Mountain") {
+            moveTo(2f, 20f); lineTo(8.5f, 6f); lineTo(12.5f, 14f); lineTo(15.5f, 9f); lineTo(22f, 20f); close()
+            moveTo(6.6f, 9f); lineTo(8.5f, 10.5f); lineTo(10.3f, 9.4f)
+        }
+    }
+
+    val Lightning: ImageVector by lazy {
+        filled("Lightning") {
+            moveTo(14f, 1.5f); lineTo(4.5f, 13.5f); horizontalLineTo(11f); lineTo(9.5f, 22.5f); lineTo(19.5f, 9.5f)
+            horizontalLineTo(13f); close()
+        }
+    }
+
     private fun PathBuilder.rect(x: Float, y: Float, w: Float, h: Float) {
         moveTo(x, y); horizontalLineToRelative(w); verticalLineToRelative(h); horizontalLineToRelative(-w); close()
     }

@@ -44,6 +44,7 @@ kotlin {
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
+            implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.material.icons.core)
             implementation(libs.navigation.compose)
@@ -58,4 +59,9 @@ kotlin {
             implementation(libs.compose.uiTest)
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "com.rideak.shared.resources"
+    publicResClass = false
 }

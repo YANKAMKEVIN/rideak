@@ -18,7 +18,8 @@ data class RideakColors(
     val reward: Color = Color(0xFFFFD43B),
     val night: Color = Color(0xFF071521),
     val surface: Color = Color(0xFF122A38),
-    val surfaceRaised: Color = Color(0xFF1C3A4C),
+    /** "Surface claire" of the board. */
+    val surfaceRaised: Color = Color(0xFF1E2A38),
     val lightSurface: Color = Color(0xFFA7B3C2),
     val mangaWhite: Color = Color(0xFFF7F4EA),
 ) {
