@@ -41,14 +41,19 @@ private class AuthorizationObserver : NSObject(), CLLocationManagerDelegateProto
 actual fun rememberLocationPermission(): LocationPermissionController {
     val observer = remember { AuthorizationObserver() }
     DisposableEffect(observer) { onDispose { observer.manager.delegate = null } }
+    val openSettings = {
+        NSURL.URLWithString(UIApplicationOpenSettingsURLString)?.let {
+            UIApplication.sharedApplication.openURL(it, options = emptyMap<Any?, Any>(), completionHandler = null)
+        }
+        Unit
+    }
     return LocationPermissionController(
         access = observer.access,
+        servicesEnabled = CLLocationManager.locationServicesEnabled(),
         // "While using the app" is enough: the location background mode keeps recording screen-off.
         request = { observer.manager.requestWhenInUseAuthorization() },
-        openSettings = {
-            NSURL.URLWithString(UIApplicationOpenSettingsURLString)?.let {
-                UIApplication.sharedApplication.openURL(it, options = emptyMap<Any?, Any>(), completionHandler = null)
-            }
-        },
+        openSettings = openSettings,
+        // iOS offers no public deep link to the system location switch: the app settings page is the closest.
+        openLocationSettings = openSettings,
     )
 }

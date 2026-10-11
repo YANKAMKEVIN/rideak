@@ -4,10 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
@@ -107,7 +109,21 @@ fun RideScreen(
         val canRecord = simulated || permission.access == LocationAccess.PRECISE ||
             (permission.access == LocationAccess.APPROXIMATE && acceptedApproximate)
         when {
-            active != null -> ActiveRide(active, simulated, feedback, viewModel, onMinimize)
+            active != null -> ActiveRide(
+                active, simulated, feedback, viewModel,
+                locationOff = !simulated && !permission.servicesEnabled,
+                onOpenLocationSettings = permission.openLocationSettings,
+                onResume = {
+                    // A recovered ride can be resumed before any permission was granted.
+                    when {
+                        simulated || permission.access == LocationAccess.PRECISE || permission.access == LocationAccess.APPROXIMATE ->
+                            viewModel.resume()
+                        permission.access == LocationAccess.DENIED -> permission.openSettings()
+                        else -> permission.request()
+                    }
+                },
+                onMinimize = onMinimize,
+            )
             canRecord -> {
                 LaunchedEffect(Unit) { viewModel.startOnce() }
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -125,84 +141,60 @@ private fun ActiveRide(
     simulated: Boolean,
     feedback: String?,
     viewModel: RideViewModel,
+    locationOff: Boolean,
+    onOpenLocationSettings: () -> Unit,
+    onResume: () -> Unit,
     onMinimize: () -> Unit,
 ) {
     var confirmStop by remember { mutableStateOf(false) }
     val paused = state.status == RideStatus.PAUSED
     val colors = RideakTheme.colors
+    val spacing = RideakTheme.spacing
 
-    Column(Modifier.fillMaxSize().padding(RideakTheme.spacing.m), verticalArrangement = Arrangement.spacedBy(RideakTheme.spacing.m)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onMinimize, modifier = Modifier.size(RideakTheme.spacing.touchTarget)) {
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Réduire, la sortie continue", tint = colors.textPrimary)
+    val header: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.s)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onMinimize, modifier = Modifier.size(spacing.touchTarget)) {
+                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Réduire, la sortie continue", tint = colors.textPrimary)
+                }
+                Spacer(Modifier.weight(1f))
+                if (simulated) StatusChip("SIMULATION", colors.reward)
+                Spacer(Modifier.size(spacing.s))
+                if (locationOff) StatusChip("Localisation désactivée", colors.action) else SignalChip(state.signal)
             }
-            Spacer(Modifier.weight(1f))
-            if (simulated) StatusChip("SIMULATION", colors.reward)
-            Spacer(Modifier.size(RideakTheme.spacing.s))
-            SignalChip(state.signal)
-        }
-
-        if (state.recovered) {
-            Text(
-                "Ta sortie a été interrompue. Reprends-la ou termine-la.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = colors.reward,
-            )
-        }
-
-        Row(verticalAlignment = Alignment.Top) {
-            Speed(state)
-            Spacer(Modifier.weight(1f))
-            Column(verticalArrangement = Arrangement.spacedBy(RideakTheme.spacing.s)) {
-                RideMetric(formatKilometers(state.metrics.distanceMeters), "km", "distance", spokenUnit = "kilomètres")
-                RideMetric(formatDuration(state.activeDurationMillis), "", "durée")
-                RideMetric("${state.metrics.elevationGainMeters.toInt()}", "m", "dénivelé +", spokenUnit = "mètres")
-            }
-        }
-
-        // The map arrives with the MapLibre spike; meanwhile this area states what is happening.
-        Box(
-            Modifier.weight(1f).fillMaxWidth()
-                .background(colors.surface, RideakTheme.shapes.large)
-                .border(1.dp, colors.lightSurface.copy(alpha = 0.2f), RideakTheme.shapes.large),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (feedback != null) {
+            if (locationOff) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "La localisation de ton téléphone est coupée : aucune position ne peut être enregistrée.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textPrimary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onOpenLocationSettings) { Text("Activer") }
+                }
+            } else if (state.recovered) {
                 Text(
-                    feedback,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = colors.mangaWhite,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .background(colors.night.copy(alpha = 0.85f), RideakTheme.shapes.pill)
-                        .border(2.dp, colors.action, RideakTheme.shapes.pill)
-                        .padding(horizontal = 24.dp, vertical = 14.dp)
-                        .semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            } else if (paused) {
-                Text(
-                    "EN PAUSE",
-                    style = RideakTheme.typography.impact,
-                    color = colors.reward,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            } else {
-                Text(
-                    "La carte arrive au prochain jalon",
+                    "Ta sortie a été interrompue. Reprends-la ou termine-la.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = colors.textSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(RideakTheme.spacing.l),
+                    color = colors.reward,
                 )
             }
         }
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+    }
+    val metrics: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.s)) {
+            RideMetric(formatKilometers(state.metrics.distanceMeters), "km", "distance", spokenUnit = "kilomètres")
+            RideMetric(formatDuration(state.activeDurationMillis), "", "durée")
+            RideMetric("${state.metrics.elevationGainMeters.toInt()}", "m", "dénivelé +", spokenUnit = "mètres")
+        }
+    }
+    val controls: @Composable (vertical: Boolean) -> Unit = { vertical ->
+        val buttons: @Composable () -> Unit = {
             if (paused) {
                 RoundAction(RideakIcons.Stop, "Terminer la sortie", colors.surface, colors.action, 72.dp, outline = colors.action) {
                     confirmStop = true
                 }
-                RoundAction(RideakIcons.Play, "Reprendre la sortie", colors.nature, colors.onAccent, 96.dp) { viewModel.resume() }
+                RoundAction(RideakIcons.Play, "Reprendre la sortie", colors.nature, colors.onAccent, 96.dp, onClick = onResume)
             } else {
                 Spacer(Modifier.size(72.dp))
                 RoundAction(RideakIcons.Pause, "Mettre en pause", colors.action, Color.White, 96.dp) { viewModel.pause() }
@@ -213,6 +205,48 @@ private fun ActiveRide(
                 colors.surface, colors.action, 72.dp,
             ) { viewModel.dropSpot() }
         }
+        if (vertical) {
+            Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceEvenly, horizontalAlignment = Alignment.CenterHorizontally) { buttons() }
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) { buttons() }
+        }
+    }
+
+    BoxWithConstraints(Modifier.fillMaxSize().padding(spacing.m)) {
+        if (maxWidth > maxHeight) {
+            // Landscape (phone mounted sideways): no map area, controls stacked on the right.
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.l)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(spacing.s)) {
+                    header()
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Speed(state)
+                        Spacer(Modifier.weight(1f))
+                        metrics()
+                    }
+                    StatusMessage(feedback, paused, showMapHint = false)
+                }
+                controls(true)
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.m)) {
+                header()
+                Row(verticalAlignment = Alignment.Top) {
+                    Speed(state)
+                    Spacer(Modifier.weight(1f))
+                    metrics()
+                }
+                // The map arrives with the MapLibre spike; meanwhile this area states what is happening.
+                Box(
+                    Modifier.weight(1f).fillMaxWidth()
+                        .background(colors.surface, RideakTheme.shapes.large)
+                        .border(1.dp, colors.lightSurface.copy(alpha = 0.2f), RideakTheme.shapes.large),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    StatusMessage(feedback, paused, showMapHint = true)
+                }
+                controls(false)
+            }
+        }
     }
 
     if (confirmStop) {
@@ -222,6 +256,37 @@ private fun ActiveRide(
             text = { Text("Elle sera enregistrée dans tes sorties.") },
             confirmButton = { TextButton(onClick = { confirmStop = false; viewModel.stop() }) { Text("Terminer") } },
             dismissButton = { TextButton(onClick = { confirmStop = false }) { Text("Continuer") } },
+        )
+    }
+}
+
+@Composable
+private fun StatusMessage(feedback: String?, paused: Boolean, showMapHint: Boolean) {
+    val colors = RideakTheme.colors
+    when {
+        feedback != null -> Text(
+            feedback,
+            style = MaterialTheme.typography.headlineSmall,
+            color = colors.mangaWhite,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .background(colors.night.copy(alpha = 0.85f), RideakTheme.shapes.pill)
+                .border(2.dp, colors.action, RideakTheme.shapes.pill)
+                .padding(horizontal = 24.dp, vertical = 14.dp)
+                .semantics { liveRegion = LiveRegionMode.Polite },
+        )
+        paused -> Text(
+            "EN PAUSE",
+            style = RideakTheme.typography.impact,
+            color = colors.reward,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+        showMapHint -> Text(
+            "La carte arrive au prochain jalon",
+            style = MaterialTheme.typography.bodyLarge,
+            color = colors.textSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(RideakTheme.spacing.l),
         )
     }
 }

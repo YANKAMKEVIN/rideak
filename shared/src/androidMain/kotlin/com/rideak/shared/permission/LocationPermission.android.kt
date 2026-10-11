@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -16,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.location.LocationManagerCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 
 private val requested = buildList {
@@ -30,16 +32,19 @@ actual fun rememberLocationPermission(): LocationPermissionController {
     val context = LocalContext.current
     var asked by rememberSaveable { mutableStateOf(false) }
     var access by remember { mutableStateOf(context.locationAccess(asked)) }
+    var servicesEnabled by remember { mutableStateOf(context.locationServicesEnabled()) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         asked = true
         access = context.locationAccess(asked = true)
     }
     LifecycleResumeEffect(asked) {
         access = context.locationAccess(asked)
+        servicesEnabled = context.locationServicesEnabled()
         onPauseOrDispose {}
     }
     return LocationPermissionController(
         access = access,
+        servicesEnabled = servicesEnabled,
         request = { launcher.launch(requested) },
         openSettings = {
             context.startActivity(
@@ -47,8 +52,14 @@ actual fun rememberLocationPermission(): LocationPermissionController {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
         },
+        openLocationSettings = {
+            context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        },
     )
 }
+
+private fun Context.locationServicesEnabled(): Boolean =
+    LocationManagerCompat.isLocationEnabled(getSystemService(Context.LOCATION_SERVICE) as LocationManager)
 
 private fun Context.granted(permission: String) =
     checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED

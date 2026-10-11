@@ -33,11 +33,23 @@ RideRecorder (:core:data, scope applicatif, Mutex)
 Vitesse : celle de l'OS (Doppler) si disponible, sinon déplacement **net depuis l'ancre** — une position
 qui oscille autour d'un cycliste arrêté a une vitesse nette ≈ 0 (cas testé : 5 min à l'arrêt, ±6 m de bruit → < 25 m).
 
+## Cas réels gérés (trouvés en test sur appareil)
+
+- **Localisation du téléphone coupée** (réglage système) : bandeau « Localisation désactivée » + bouton vers le réglage,
+  au lieu d'un « Recherche GPS… » sans fin.
+- **Sortie restaurée sans permission** : « Reprendre » demande la permission (ou ouvre les réglages si refusée).
+- **Service refusé par le système** (Android 14+ exige la permission de localisation pour un service `location`) :
+  le service s'arrête proprement, l'enregistrement continue tant que l'app est visible ; jamais de plantage.
+  En simulation sans permission, pas de service du tout.
+- **Paysage** (téléphone monté de côté) : mise en page dédiée, boutons empilés à droite.
+
 ## Limites connues
 
 - Dénivelé basé sur l'altitude GPS : approximatif (pas de baromètre ni de modèle de terrain).
 - Pas d'auto-pause ; la distance entre deux fixes après un trou de signal est en ligne droite.
-- Une sortie démarrée par erreur reste dans l'historique (pas encore de suppression).
+- Une sortie démarrée par erreur reste dans l'historique (pas encore de suppression ni d'abandon d'une sortie vide).
+- Le choix « Sortie simulée » n'est pas mémorisé entre deux lancements (outil de debug).
+- Pas encore testé en conditions réelles à vélo (GPS réel en extérieur) : à faire en priorité.
 
 ## Plateformes
 

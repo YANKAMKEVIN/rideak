@@ -1,14 +1,17 @@
 package com.rideak.app.ride
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -41,13 +44,21 @@ class RideTrackingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!observing) {
+            createChannel()
+            try {
+                ServiceCompat.startForeground(
+                    this, NOTIFICATION_ID, notification(recorder.state.value),
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0,
+                )
+            } catch (e: Exception) {
+                // Refused by the system (permission revoked, background start…): never crash the ride.
+                // Recording continues while the app is visible; only screen-off survival is lost.
+                Log.w(TAG, "Foreground service refused", e)
+                stopSelf()
+                return START_NOT_STICKY
+            }
             observing = true
             running = true
-            createChannel()
-            ServiceCompat.startForeground(
-                this, NOTIFICATION_ID, notification(recorder.state.value),
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0,
-            )
             scope.launch {
                 recorder.state.collect { state ->
                     if (state is RecorderState.Active) {
@@ -110,6 +121,7 @@ class RideTrackingService : Service() {
     )
 
     companion object {
+        private const val TAG = "RideTrackingService"
         private const val CHANNEL_ID = "ride"
         private const val NOTIFICATION_ID = 1
         private const val ACTION_PAUSE = "com.rideak.app.ride.PAUSE"
@@ -126,6 +138,11 @@ class AndroidRideForeground(private val context: Context) : RideForegroundContro
     override fun onRideActive() {
         // Already running (e.g. resumed from its own notification): nothing to start.
         if (RideTrackingService.running) return
+        // A location foreground service requires the location permission (Android 14+). Without it
+        // (simulated ride in a debug build), record only while the app is visible.
+        val granted = listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            .any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+        if (!granted) return
         ContextCompat.startForegroundService(context, Intent(context, RideTrackingService::class.java))
     }
 
