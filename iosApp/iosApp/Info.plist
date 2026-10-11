@@ -24,6 +24,11 @@
 	<array>
 		<string>location</string>
 	</array>
+	<!-- The whole UI is dark: light status bar text everywhere. -->
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleLightContent</string>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

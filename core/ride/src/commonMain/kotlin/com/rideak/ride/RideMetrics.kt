@@ -34,6 +34,7 @@ data class RideMetrics(
     val currentSpeedMps: Double = 0.0,
     val maxSpeedMps: Double = 0.0,
     val elevationGainMeters: Double = 0.0,
+    val elevationLossMeters: Double = 0.0,
 )
 
 /** Calculator state: metrics plus what is needed to process the next fix. Immutable. */
@@ -93,13 +94,14 @@ class RideMetricsCalculator(private val config: RideFilterConfig = RideFilterCon
         val advanced = moving && step >= threshold
 
         var gain = metrics.elevationGainMeters
+        var loss = metrics.elevationLossMeters
         var reference = state.elevationReference
         point.altitudeMeters?.let { altitude ->
             val ref = reference
             when {
                 ref == null -> reference = altitude
                 altitude - ref >= config.elevationHysteresisMeters -> { gain += altitude - ref; reference = altitude }
-                ref - altitude >= config.elevationHysteresisMeters -> reference = altitude
+                ref - altitude >= config.elevationHysteresisMeters -> { loss += ref - altitude; reference = altitude }
             }
         }
 
@@ -110,6 +112,7 @@ class RideMetricsCalculator(private val config: RideFilterConfig = RideFilterCon
                 currentSpeedMps = smoothed,
                 maxSpeedMps = max(metrics.maxSpeedMps, smoothed),
                 elevationGainMeters = gain,
+                elevationLossMeters = loss,
             ),
             previous = point,
             anchor = if (advanced) point else anchor,

@@ -103,6 +103,7 @@ class RideMetricsCalculatorTest {
         // Climbs 60 m over 2 minutes, then descends: only the climb counts.
         val climb = Traces.straight(seconds = 240, speedMps = 4.0, altitude = { s -> 30.0 + 60.0 * (if (s <= 120) s else 240 - s) / 120 })
         assertNear(60.0, metrics(climb).elevationGainMeters, 5.0)
+        assertNear(60.0, metrics(climb).elevationLossMeters, 5.0)
     }
 
     @Test

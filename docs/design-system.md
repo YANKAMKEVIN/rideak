@@ -23,7 +23,7 @@ Seuils AA : 4.5 texte normal, 3.0 texte large (≥ 18,66 sp gras ou ≥ 24 sp).
 3. Bleu/rouge en *texte* sur Surface : réservé au texte large (4.43 / 4.49 < 4.5).
 4. Une information n'est jamais portée par la couleur seule (le % est toujours écrit, etc.).
 
-`surfaceRaised` (#1C3A4C) est un token ajouté pour les pistes de progression et les élévations.
+`surfaceRaised` = « Surface claire » de la planche (#1E2A38).
 
 ## Typographie — deux voix
 
@@ -31,9 +31,9 @@ Seuils AA : 4.5 texte normal, 3.0 texte large (≥ 18,66 sp gras ou ≥ 24 sp).
 - **Impact / manga** (`typography.impact`) : « NOUVEL ENDROIT ! », « GO! », milestones. Cible : **Bangers** (SIL OFL).
 - `typography.metric` : grandes valeurs de sortie. `typography.action` : libellé des CTA.
 
-⚠️ **Les fichiers de police ne sont pas encore intégrés** (téléchargement à valider) :
-les deux voix utilisent la sans-serif système. Le remplacement se fait en un seul endroit
-(`Type.kt`, `UiFontFamily` / `DisplayFontFamily`) via Compose Resources.
+Polices intégrées via Compose Resources (`shared/src/commonMain/composeResources/font`) :
+Inter 400/500/600/700/800 et Bangers (sous-ensemble latin, accents français inclus).
+Licences SIL OFL dans `docs/licenses/`. Bangers n'a que des capitales : c'est voulu pour la voix manga.
 
 ## Espacements et formes
 
@@ -48,6 +48,8 @@ les deux voix utilisent la sans-serif système. Le remplacement se fait en un se
 | `RideMetric` | ✅ valeur + unité + libellé, lu comme une phrase par TalkBack/VoiceOver |
 | `ExplorationProgressBar` | ✅ consomme `ExplorationProgress` du domaine, sémantique de progression |
 | `RideakBottomBar` | ✅ libellés toujours visibles |
+| `TrackPreview` | ✅ tracé + zones explorées + spots dessinés depuis nos données (en attendant MapLibre) |
+| Icônes `RideakIcons` | ✅ parc, rivière, ville, colline, vélo, carte, feuille, chrono, minuteur, compteur, montagne, éclair, cœur, pause/lecture/stop |
 | `RideStatCard`, `LocationChip`, `DiscoveryCard`, `MangaBanner`, `MapMarker`, `AchievementBadge` | prévus, non implémentés |
 
 Les icônes Material sont temporaires (le set illustré RIDEAK les remplacera).
