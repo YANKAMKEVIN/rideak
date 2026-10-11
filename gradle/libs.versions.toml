@@ -1,22 +1,23 @@
 [versions]
-agp = "9.0.1"
-android-compileSdk = "36"
+agp = "9.1.1"
+android-compileSdk = "37"
 android-minSdk = "26"
 android-targetSdk = "36"
 androidx-activity = "1.13.0"
-androidx-lifecycle = "2.10.0"
+androidx-lifecycle = "2.11.0"
 compose-material-icons = "1.7.3"
 compose-navigation = "2.9.2"
-composeMultiplatform = "1.11.0"
-kotlin = "2.3.21"
+composeMultiplatform = "1.12.1"
+kotlin = "2.4.21"
 koin = "4.2.2"
 kotlinx-coroutines = "1.11.0"
 kotlinx-datetime = "0.8.0"
 ksp = "2.3.12"
+maplibre-compose = "0.20.0"
 play-services-location = "21.4.0"
 room = "2.8.5"
 sqlite = "2.6.2"
-material3 = "1.11.0-alpha07"
+material3 = "1.12.0-alpha03"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
@@ -31,6 +32,8 @@ compose-uiTest = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "c
 compose-uiTooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibre-compose" }
+maplibre-compose-runtime-android = { module = "org.maplibre.compose:maplibre-compose-runtime-opengl-android", version.ref = "maplibre-compose" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "compose-navigation" }
 
 androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }

@@ -5,6 +5,7 @@ import com.rideak.data.dataModule
 import com.rideak.data.platformDataModule
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.shared.feature.home.HomeViewModel
+import com.rideak.shared.feature.map.MapViewModel
 import com.rideak.shared.feature.profile.ProfileViewModel
 import com.rideak.shared.feature.ride.RideViewModel
 import com.rideak.shared.feature.rides.RidesViewModel
@@ -20,8 +21,16 @@ import org.koin.dsl.module
 /** Facts about the running build, provided by each host app. */
 data class AppInfo(val isDebug: Boolean)
 
+/** Debug-only switches, kept in memory (reset at each launch). */
+class DeveloperSettings {
+    /** Adds a synthetic ~1 000-cell exploration to the map, to measure overlay rendering. */
+    val mapStressTest = kotlinx.coroutines.flow.MutableStateFlow(false)
+}
+
 private val uiModule = module {
+    single { DeveloperSettings() }
     viewModelOf(::HomeViewModel)
+    viewModelOf(::MapViewModel)
     viewModelOf(::RideViewModel)
     viewModelOf(::RidesViewModel)
     viewModelOf(::ProfileViewModel)

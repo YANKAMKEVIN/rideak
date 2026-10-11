@@ -1,6 +1,6 @@
 # Décision cartographique
 
-**Statut : recommandation, aucun SDK intégré à J0.** À confirmer par un spike (prototype de style).
+**Statut : validé par le spike du 2026-10-11** (`docs/spikes/maplibre.md`) — MapLibre + OpenFreeMap adoptés.
 
 ## Contrainte de départ
 
