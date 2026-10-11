@@ -9,7 +9,8 @@ Ce sont des données personnelles au sens du RGPD.
 - **Position uniquement pendant une sortie**, demandée au moment de partir, avec explication.
   Pas de localisation en arrière-plan (Android) ni « Toujours » (iOS) : le foreground service et le
   mode d'arrière-plan `location` couvrent l'écran éteint, avec indicateur visible pour l'utilisateur.
-- **Aucun réseau** : traces, spots et sorties restent dans la base locale de l'appareil.
+- **Traces, spots et sorties restent dans la base locale** de l'appareil. Seul réseau : le fond de carte
+  (OpenFreeMap), qui voit les zones affichées mais jamais les traces ni les zones explorées.
 - Position approximative : expliquée (distance et exploration fausses), l'utilisateur choisit.
 - **Aucune sauvegarde système** : `data_extraction_rules.xml` et `backup_rules.xml` excluent
   toutes les données de la sauvegarde cloud Google et du transfert d'appareil. À rouvrir

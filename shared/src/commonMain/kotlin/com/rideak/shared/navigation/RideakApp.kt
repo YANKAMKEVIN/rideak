@@ -17,6 +17,7 @@ import androidx.navigation.toRoute
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.RideakBottomBar
 import com.rideak.shared.feature.home.HomeScreen
+import com.rideak.shared.feature.map.WorldMapScreen
 import com.rideak.shared.feature.placeholder.PlaceholderScreen
 import com.rideak.shared.feature.profile.ProfileScreen
 import com.rideak.shared.feature.ride.RideScreen
@@ -57,7 +58,7 @@ fun RideakApp() {
         ) { padding ->
             NavHost(navController, startDestination = HomeRoute, modifier = Modifier.padding(padding)) {
                 composable<HomeRoute> { HomeScreen(onRide = { navController.navigate(RideRoute) { launchSingleTop = true } }) }
-                composable<MapRoute> { PlaceholderScreen("Carte", "Ta world map personnelle se dévoilera ici.") }
+                composable<MapRoute> { WorldMapScreen() }
                 composable<RidesRoute> { RidesScreen(onOpenRide = { navController.navigate(RideSummaryRoute(it)) }) }
                 composable<PlacesRoute> { PlaceholderScreen("Lieux", "Tes lieux découverts et tes ❤️ arrivent bientôt.") }
                 composable<ProfileRoute> { ProfileScreen() }

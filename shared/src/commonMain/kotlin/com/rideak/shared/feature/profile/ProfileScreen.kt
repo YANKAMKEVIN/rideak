@@ -29,6 +29,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ProfileScreen(viewModel: ProfileViewModel = koinViewModel()) {
     val simulation by viewModel.simulation.collectAsStateWithLifecycle()
+    val stress by viewModel.mapStressTest.collectAsStateWithLifecycle()
     val c = RideakTheme.colors
     Column(
         Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).padding(RideakTheme.spacing.l),
@@ -43,21 +44,24 @@ fun ProfileScreen(viewModel: ProfileViewModel = koinViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(RideakTheme.spacing.s),
             ) {
                 Text("OUTILS DE DÉVELOPPEMENT", style = MaterialTheme.typography.labelMedium, color = c.reward)
-                Row(
-                    Modifier.fillMaxWidth().toggleable(simulation, role = Role.Switch, onValueChange = viewModel::setSimulation),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Sortie simulée", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
-                        Text(
-                            "Rejoue une boucle de ~3,8 km autour de Cergy à 22 km/h, sans GPS.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = c.textSecondary,
-                        )
-                    }
-                    Switch(checked = simulation, onCheckedChange = null)
-                }
+                DevSwitch("Sortie simulée", "Rejoue une boucle de ~3,8 km autour de Cergy à 22 km/h, sans GPS.", simulation, viewModel::setSimulation)
+                DevSwitch("Carte : 1 000 zones de test", "Ajoute une exploration synthétique pour mesurer le rendu de la carte.", stress, viewModel::setMapStressTest)
             }
         }
+    }
+}
+
+@Composable
+private fun DevSwitch(title: String, description: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    val c = RideakTheme.colors
+    Row(
+        Modifier.fillMaxWidth().toggleable(checked, role = Role.Switch, onValueChange = onChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+            Text(description, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+        }
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
