@@ -1,0 +1,8 @@
+Attached: ref_icons.png and ref_chips.png (target mockup icon style).
+Art direction: RIDEAK, a cycling exploration app with a manga / modern JRPG look: vibrant saturated colours, clean cel shading, crisp outlines. Palette: exploration blue #238CFF, nature green #35D66F, action red #FF4B45, reward yellow #FFD43B, night #071521, manga white #F7F4EA. Original designs only (no existing franchise, no logos). Absolutely NO text, letters or numbers inside images unless explicitly asked.
+Generate FOUR separate square images 1024x1024, each a single bold flat-but-shaded category icon centred on a fully TRANSPARENT background (PNG with alpha), large and simple enough to read at 32 px, matching the mockup:
+1. icon_parks.png — a green pine/fir tree (nature green).
+2. icon_rivers.png — blue water waves (exploration blue).
+3. icon_cities.png — red city buildings / towers (action red).
+4. icon_hills.png — yellow-orange hills/mountains with a small peak highlight (reward yellow).
+Save them in the current directory with exactly those names. Reply with the four paths only.

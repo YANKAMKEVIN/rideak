@@ -1,0 +1,4 @@
+Attached: ref_discovery.png (target mockup: "nouvel endroit découvert" screen).
+Art direction: RIDEAK, a cycling exploration app with a manga / modern JRPG look: vibrant saturated colours, clean cel shading, crisp outlines. Palette: exploration blue #238CFF, nature green #35D66F, action red #FF4B45, reward yellow #FFD43B, night #071521, manga white #F7F4EA. Original designs only (no existing franchise, no logos). Absolutely NO text, letters or numbers inside images unless explicitly asked.
+Generate ONE landscape image 1536x1024: a lively French town park discovered by a cyclist — a pond with a small fountain, lawns, big trees, a classic stone manor house in the background, flowers, sunny sky. Same anime key-art style as the mockup illustration. No people needed. No text.
+Save it in the current directory as discovery_park.png. Reply with the path only.

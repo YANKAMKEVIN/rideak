@@ -1,0 +1,11 @@
+Attached: ref_badges_profile.png and ref_badges_examples.png (target mockup badges).
+Art direction: RIDEAK, a cycling exploration app with a manga / modern JRPG look: vibrant saturated colours, clean cel shading, crisp outlines. Palette: exploration blue #238CFF, nature green #35D66F, action red #FF4B45, reward yellow #FFD43B, night #071521, manga white #F7F4EA. Original designs only (no existing franchise, no logos). Absolutely NO text, letters or numbers inside images unless explicitly asked.
+Generate SIX separate square images 1024x1024, each ONE achievement badge, centred, on a fully TRANSPARENT background (PNG with alpha), in the style of the references: a hexagonal emblem with a metallic bevelled frame and a small illustrated scene inside, glossy, readable at small size.
+1. badge_first_ride.png — blue-steel frame, a cyclist silhouette on a road at sunrise.
+2. badge_10km.png — blue frame, a mountain road climbing to a peak with a little flag.
+3. badge_first_park.png — green frame, a big round tree in a park with a bench.
+4. badge_5_cities.png — light-blue frame, a cluster of city towers.
+5. badge_100km.png — gold frame, a long winding road to the horizon with a sun.
+6. badge_explorer.png — purple frame, a compass over mountains and a river.
+No text or numbers on the badges.
+Save all six PNGs in the current directory with exactly those file names. Reply with the six paths only.
