@@ -37,11 +37,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import com.rideak.shared.resources.Res
+import com.rideak.shared.resources.category_cities
+import com.rideak.shared.resources.category_hills
+import com.rideak.shared.resources.category_parks
+import com.rideak.shared.resources.category_rivers
 import com.rideak.shared.resources.hero_home
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -151,15 +155,16 @@ private fun SearchField() {
 private fun CategoryRow() {
     val c = RideakTheme.colors
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Category("Parcs", RideakIcons.Park, c.nature)
-        Category("Rivières", RideakIcons.River, c.exploration)
-        Category("Villes", RideakIcons.City, c.action)
-        Category("Collines", RideakIcons.Hills, c.reward)
+        // Illustrated icons generated from the board (prompt in docs/assets/category_icons.prompt.txt).
+        Category("Parcs", Res.drawable.category_parks, c.nature)
+        Category("Rivières", Res.drawable.category_rivers, c.exploration)
+        Category("Villes", Res.drawable.category_cities, c.action)
+        Category("Collines", Res.drawable.category_hills, c.reward)
     }
 }
 
 @Composable
-private fun Category(label: String, icon: ImageVector, color: Color) {
+private fun Category(label: String, icon: DrawableResource, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
             Modifier.size(56.dp)
@@ -167,7 +172,7 @@ private fun Category(label: String, icon: ImageVector, color: Color) {
                 .border(1.5.dp, color.copy(alpha = 0.45f), RideakTheme.shapes.pill),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(28.dp))
+            Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(36.dp))
         }
         Text(label, style = MaterialTheme.typography.labelLarge, color = RideakTheme.colors.textPrimary)
     }

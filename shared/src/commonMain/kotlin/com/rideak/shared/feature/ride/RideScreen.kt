@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -69,7 +70,7 @@ import com.rideak.exploration.RideId
 import com.rideak.ride.RideStatus
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.AdventureButton
-import com.rideak.shared.designsystem.components.TrackPreview
+import com.rideak.shared.feature.map.RideMap
 import com.rideak.shared.designsystem.icons.RideakIcons
 import com.rideak.shared.format.formatDuration
 import com.rideak.shared.format.formatKilometers
@@ -211,8 +212,13 @@ private fun ActiveRide(
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val panelWidth = maxWidth * 0.45f
-        // The ride drawn from its own data, until the MapLibre map replaces it.
-        TrackPreview(listOf(state.track), Modifier.fillMaxSize(), showCurrentPosition = true)
+        // The real map follows the rider; insets keep its attribution above the controls.
+        RideMap(
+            segments = listOf(state.track),
+            modifier = Modifier.fillMaxSize(),
+            follow = true,
+            insets = PaddingValues(top = 230.dp, bottom = 130.dp),
+        )
 
         if (maxWidth > maxHeight) {
             // Landscape (phone mounted sideways): stats panel on the left, controls stacked on the right.

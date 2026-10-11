@@ -67,7 +67,7 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
         val spots = rememberGeoJsonSource(GeoJsonData.JsonString(state.spots))
 
         // Unexplored world under a night veil; ridden cells stay clear ("ton monde se dévoile").
-        FillLayer(id = "rideak-fog", source = fog, color = const(colors.night), opacity = const(0.6f))
+        FillLayer(id = "rideak-fog", source = fog, color = const(colors.night), opacity = const(0.55f))
         LineLayer(id = "rideak-cells", source = cells, color = const(colors.nature), width = const(1.5.dp), opacity = const(0.7f))
         LineLayer(
             id = "rideak-track-glow", source = tracks, color = const(colors.action), opacity = const(0.35f),

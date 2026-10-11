@@ -52,7 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rideak.shared.designsystem.RideakTheme
-import com.rideak.shared.designsystem.components.TrackPreview
+import com.rideak.shared.feature.map.RideMap
 import com.rideak.shared.designsystem.icons.RideakIcons
 import com.rideak.shared.format.formatClock
 import com.rideak.shared.format.formatDurationShort
@@ -116,11 +116,10 @@ private fun Summary(state: RideSummaryUiState, onBack: () -> Unit) {
             }
         }
 
-        TrackPreview(
+        RideMap(
             segments = state.segments,
             spots = state.spots.map { it.position },
-            modifier = Modifier.fillMaxWidth().height(260.dp),
-            minSpanMeters = 600.0,
+            modifier = Modifier.fillMaxWidth().height(280.dp),
         )
 
         Column(Modifier.padding(spacing.m), verticalArrangement = Arrangement.spacedBy(spacing.m)) {

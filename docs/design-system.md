@@ -48,7 +48,7 @@ Licences SIL OFL dans `docs/licenses/`. Bangers n'a que des capitales : c'est vo
 | `RideMetric` | ✅ valeur + unité + libellé, lu comme une phrase par TalkBack/VoiceOver |
 | `ExplorationProgressBar` | ✅ consomme `ExplorationProgress` du domaine, sémantique de progression |
 | `RideakBottomBar` | ✅ libellés toujours visibles |
-| `TrackPreview` | ✅ tracé + zones explorées + spots dessinés depuis nos données (en attendant MapLibre) |
+| `RideMap` (feature/map) | ✅ carte MapLibre d'une sortie : zones, tracé lumineux, spots, position en direct (suivi) |
 | Icônes `RideakIcons` | ✅ parc, rivière, ville, colline, vélo, carte, feuille, chrono, minuteur, compteur, montagne, éclair, cœur, pause/lecture/stop |
 | `RideStatCard`, `LocationChip`, `DiscoveryCard`, `MangaBanner`, `MapMarker`, `AchievementBadge` | prévus, non implémentés |
 

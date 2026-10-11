@@ -1,8 +1,8 @@
 {
  "version": 8,
- "name": "RIDEAK Night v0.1",
+ "name": "RIDEAK Day v0.2",
  "metadata": {
-  "rideak:note": "Palette RIDEAK sur schéma OpenMapTiles (tuiles OpenFreeMap). Données © OpenStreetMap contributors."
+  "rideak:note": "Palette jour inspirée de la planche (carte illustrée lumineuse) sur schéma OpenMapTiles (OpenFreeMap). Données © OpenStreetMap contributors."
  },
  "sources": {
   "openmaptiles": {
@@ -16,7 +16,7 @@
    "id": "background",
    "type": "background",
    "paint": {
-    "background-color": "#0E2130"
+    "background-color": "#D9EDB8"
    }
   },
   {
@@ -41,7 +41,7 @@
     ]
    ],
    "paint": {
-    "fill-color": "#163A30"
+    "fill-color": "#A9DC7E"
    }
   },
   {
@@ -64,7 +64,7 @@
     ]
    ],
    "paint": {
-    "fill-color": "#1A5040"
+    "fill-color": "#4FB45C"
    }
   },
   {
@@ -88,7 +88,7 @@
     ]
    ],
    "paint": {
-    "fill-color": "#14283A"
+    "fill-color": "#E8EED3"
    }
   },
   {
@@ -97,8 +97,8 @@
    "source": "openmaptiles",
    "source-layer": "park",
    "paint": {
-    "fill-color": "#1F6B47",
-    "fill-opacity": 0.85
+    "fill-color": "#62C657",
+    "fill-outline-color": "#3E9F45"
    }
   },
   {
@@ -107,7 +107,7 @@
    "source": "openmaptiles",
    "source-layer": "water",
    "paint": {
-    "fill-color": "#1D5FA8"
+    "fill-color": "#3FA9F5"
    }
   },
   {
@@ -116,7 +116,7 @@
    "source": "openmaptiles",
    "source-layer": "waterway",
    "paint": {
-    "line-color": "#2E86DE",
+    "line-color": "#3FA9F5",
     "line-width": [
      "interpolate",
      [
@@ -127,9 +127,9 @@
       "zoom"
      ],
      10,
-     0.8,
+     1,
      17,
-     4
+     5
     ]
    }
   },
@@ -140,8 +140,53 @@
    "source-layer": "building",
    "minzoom": 14,
    "paint": {
-    "fill-color": "#1E2A38",
-    "fill-outline-color": "#2A3D52"
+    "fill-color": "#F3EAD8",
+    "fill-outline-color": "#D8BE96"
+   }
+  },
+  {
+   "id": "road-casing",
+   "type": "line",
+   "source": "openmaptiles",
+   "source-layer": "transportation",
+   "filter": [
+    "in",
+    [
+     "get",
+     "class"
+    ],
+    [
+     "literal",
+     [
+      "primary",
+      "secondary",
+      "tertiary",
+      "trunk",
+      "motorway",
+      "minor"
+     ]
+    ]
+   ],
+   "layout": {
+    "line-cap": "round",
+    "line-join": "round"
+   },
+   "paint": {
+    "line-color": "#C9B99A",
+    "line-width": [
+     "interpolate",
+     [
+      "exponential",
+      1.5
+     ],
+     [
+      "zoom"
+     ],
+     10,
+     1.6,
+     17,
+     15
+    ]
    }
   },
   {
@@ -169,7 +214,7 @@
     "line-join": "round"
    },
    "paint": {
-    "line-color": "#2C4256",
+    "line-color": "#FFFDF6",
     "line-width": [
      "interpolate",
      [
@@ -180,9 +225,9 @@
       "zoom"
      ],
      10,
-     0.4,
+     0.5,
      17,
-     7
+     8
     ]
    }
   },
@@ -213,7 +258,7 @@
     "line-join": "round"
    },
    "paint": {
-    "line-color": "#3E5A73",
+    "line-color": "#FFFFFF",
     "line-width": [
      "interpolate",
      [
@@ -224,7 +269,7 @@
       "zoom"
      ],
      10,
-     1,
+     1.2,
      17,
      12
     ]
@@ -256,8 +301,8 @@
     ]
    ],
    "paint": {
-    "line-color": "#3B5268",
-    "line-opacity": 0.6,
+    "line-color": "#B89E74",
+    "line-opacity": 0.8,
     "line-width": [
      "interpolate",
      [
@@ -268,9 +313,9 @@
       "zoom"
      ],
      10,
-     0.3,
+     0.4,
      17,
-     1.5
+     1.8
     ],
     "line-dasharray": [
      2,
@@ -296,8 +341,8 @@
     "line-cap": "round"
    },
    "paint": {
-    "line-color": "#FFD43B",
-    "line-opacity": 0.9,
+    "line-color": "#F2B705",
+    "line-opacity": 0.95,
     "line-width": [
      "interpolate",
      [
@@ -359,9 +404,9 @@
     "text-max-width": 8
    },
    "paint": {
-    "text-color": "#F7F4EA",
-    "text-halo-color": "#071521",
-    "text-halo-width": 1.6
+    "text-color": "#122A38",
+    "text-halo-color": "#FFFFFF",
+    "text-halo-width": 1.8
    }
   },
   {
@@ -381,8 +426,8 @@
     "text-size": 12
    },
    "paint": {
-    "text-color": "#9CC9F5",
-    "text-halo-color": "#071521",
+    "text-color": "#0B5FA5",
+    "text-halo-color": "#FFFFFF",
     "text-halo-width": 1.2
    }
   }
