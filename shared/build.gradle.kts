@@ -39,6 +39,7 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.maplibre.compose)
 
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -51,6 +52,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
         }
         androidMain.dependencies {
+            runtimeOnly(libs.maplibre.compose.runtime.android)
             implementation(libs.androidx.activity.compose)
             implementation(libs.koin.android)
         }
