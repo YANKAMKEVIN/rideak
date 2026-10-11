@@ -26,6 +26,8 @@ data class WorldMapUiState(
     val fog: String = GeoJson.fog(emptyList()),
     val spots: String = GeoJson.points(emptyList()),
     val camera: MapCamera = MapCamera(49.0364, 2.0761, 12.5),
+    /** South-west and north-east corners of everything ridden, for an inset-aware camera fit. */
+    val bounds: List<GeoPoint> = emptyList(),
 )
 
 /** Everything ridden so far, turned into map overlays. Exploration is derived from stored points, as everywhere. */
@@ -59,6 +61,10 @@ class MapViewModel(
             fog = GeoJson.fog(cells),
             spots = GeoJson.points(spots),
             camera = if (all.isEmpty()) WorldMapUiState().camera else fit(all),
+            bounds = if (all.isEmpty()) emptyList() else listOf(
+                GeoPoint(all.minOf { it.latitude }, all.minOf { it.longitude }),
+                GeoPoint(all.maxOf { it.latitude }, all.maxOf { it.longitude }),
+            ),
         )
     }
 

@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.rideak.exploration.ExplorationEngine
 import com.rideak.exploration.GeoPoint
@@ -19,7 +18,13 @@ import org.maplibre.compose.camera.CameraUpdate
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.expressions.value.LineCap
 import org.maplibre.compose.expressions.value.LineJoin
-import org.maplibre.compose.layers.CircleLayer
+import org.maplibre.compose.layers.SymbolLayer
+import org.maplibre.compose.expressions.dsl.image
+import org.maplibre.compose.expressions.value.SymbolAnchor
+import androidx.compose.ui.unit.DpSize
+import com.rideak.shared.resources.pin_heart
+import com.rideak.shared.resources.pin_position
+import org.jetbrains.compose.resources.painterResource
 import org.maplibre.compose.layers.LineLayer
 import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.map.rememberMapState
@@ -56,6 +61,8 @@ fun RideMap(
     val spotsJson = remember(spots) { GeoJson.points(spots) }
     val here = remember(current) { GeoJson.points(listOfNotNull(current)) }
 
+    val heartPin = painterResource(Res.drawable.pin_heart)
+    val herePin = painterResource(Res.drawable.pin_position)
     val mapState = rememberMapState(
         baseStyle = BaseStyle.Uri(Res.getUri("files/rideak_style.json")),
         initialCameraPosition = CameraPosition(center = start.toPosition(), zoom = if (follow) 16.0 else 14.0),
@@ -74,14 +81,18 @@ fun RideMap(
             id = "ride-track", source = trackSource, color = const(colors.action),
             width = const(5.dp), cap = const(LineCap.Round), join = const(LineJoin.Round),
         )
-        CircleLayer(
-            id = "ride-spots", source = spotSource, color = const(colors.action), radius = const(7.dp),
-            strokeColor = const(Color.White), strokeWidth = const(2.dp),
+        SymbolLayer(
+            id = "ride-spots", source = spotSource,
+            iconImage = image(heartPin, size = DpSize(30.dp, 30.dp)),
+            iconAnchor = const(SymbolAnchor.Bottom),
+            iconAllowOverlap = const(true),
         )
         if (follow) {
-            CircleLayer(
-                id = "ride-here", source = hereSource, color = const(colors.exploration), radius = const(9.dp),
-                strokeColor = const(Color.White), strokeWidth = const(3.dp),
+            SymbolLayer(
+                id = "ride-here", source = hereSource,
+                iconImage = image(herePin, size = DpSize(42.dp, 42.dp)),
+                iconAnchor = const(SymbolAnchor.Bottom),
+                iconAllowOverlap = const(true),
             )
         }
     }

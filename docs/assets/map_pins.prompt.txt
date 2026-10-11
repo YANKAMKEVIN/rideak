@@ -1,0 +1,10 @@
+Attached: ref_markers_board.png and ref_map_markers.png (target: map markers of the mockup).
+Art direction: RIDEAK, a cycling exploration app with a manga / modern JRPG look: vibrant saturated colours, clean cel shading, crisp outlines. Palette: exploration blue #238CFF, nature green #35D66F, action red #FF4B45, reward yellow #FFD43B, night #071521, manga white #F7F4EA. Original designs only (no franchise, no logos). Absolutely NO text, letters or numbers inside the images.
+Generate SIX separate square images 512x512, each ONE map pin marker centred on a fully TRANSPARENT background (PNG with alpha): a classic teardrop map pin with a white rim, glossy coloured fill, a bold white glyph inside, soft drop shadow, readable at 40 px:
+1. pin_heart.png — red pin, white heart.
+2. pin_park.png — green pin, white tree.
+3. pin_river.png — blue pin, white waves.
+4. pin_city.png — orange-red pin, white buildings.
+5. pin_hills.png — yellow pin, white mountains.
+6. pin_position.png — blue pin with a white cyclist head silhouette (current position).
+Save them in the current directory with exactly those file names. Reply with the six paths only.

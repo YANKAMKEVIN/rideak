@@ -8,6 +8,7 @@ quand son écran est construit.
 |---|---|
 | `onboarding.webp` | Onboarding (« Explore ton monde à vélo ») |
 | `discovery_park.webp` | « Nouvel endroit découvert » (exemple : parc) |
+| `pin_park/river/city/hills.webp` | Marqueurs de lieux découverts sur la carte |
 | `badge_*.webp` | Profil → Mes badges (Première sortie, 10 km, Premier parc, 5 villes, 100 km, Explorateur) |
 
-Déjà intégrés : `hero_home.webp` (accueil), `category_*.webp` (pastilles de catégories).
+Déjà intégrés : `hero_home.webp` (accueil), `category_*.webp` (pastilles), `card_*.webp` (carrousel « Ma carte »), `pin_heart` / `pin_position` (carte).

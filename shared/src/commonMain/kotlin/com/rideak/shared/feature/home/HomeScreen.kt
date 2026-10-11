@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.AdventureButton
+import com.rideak.shared.designsystem.components.TerritoryCard
 import com.rideak.shared.format.formatKilometersShort
 import com.rideak.shared.designsystem.icons.RideakIcons
 
@@ -175,47 +176,6 @@ private fun Category(label: String, icon: DrawableResource, color: Color) {
             Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(36.dp))
         }
         Text(label, style = MaterialTheme.typography.labelLarge, color = RideakTheme.colors.textPrimary)
-    }
-}
-
-/** Exploration milestones: the bar always shows progress toward the next one. */
-private val milestones = listOf(10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000)
-
-@Composable
-private fun TerritoryCard(exploredCells: Int) {
-    val colors = RideakTheme.colors
-    val next = milestones.firstOrNull { it > exploredCells } ?: (exploredCells + 1)
-    val previous = milestones.lastOrNull { it <= exploredCells } ?: 0
-    val fraction = ((exploredCells - previous).toFloat() / (next - previous)).coerceIn(0f, 1f)
-    val subtitle = if (exploredCells == 0) "Ta première sortie dévoilera ta carte" else "$exploredCells zones explorées"
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.surface, RideakTheme.shapes.medium)
-            .border(1.dp, colors.lightSurface.copy(alpha = 0.25f), RideakTheme.shapes.medium)
-            .padding(horizontal = RideakTheme.spacing.m, vertical = 14.dp)
-            .clearAndSetSemantics {
-                contentDescription = "Mon territoire, $subtitle, prochain palier $next zones"
-                progressBarRangeInfo = ProgressBarRangeInfo(fraction, 0f..1f)
-            },
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(
-                Modifier.size(44.dp).background(colors.nature.copy(alpha = 0.15f), RideakTheme.shapes.pill),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(RideakIcons.Leaf, contentDescription = null, tint = colors.nature, modifier = Modifier.size(28.dp))
-            }
-            Column(Modifier.weight(1f)) {
-                Text("Mon territoire", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
-            }
-            Text("$exploredCells / $next", style = MaterialTheme.typography.labelLarge, color = colors.nature)
-        }
-        Box(Modifier.fillMaxWidth().height(8.dp).background(colors.surfaceRaised, RideakTheme.shapes.pill)) {
-            Box(Modifier.fillMaxWidth(fraction).height(8.dp).background(colors.nature, RideakTheme.shapes.pill))
-        }
     }
 }
 

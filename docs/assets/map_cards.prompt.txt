@@ -1,0 +1,9 @@
+Attached: ref_map_cards.png (target: the category cards under the map in the mockup) and hero_home_portrait.png (our hero art: keep exactly this rendering style).
+Art direction: RIDEAK, a cycling exploration app with a manga / modern JRPG look: vibrant saturated colours, clean cel shading, crisp outlines. Palette: exploration blue #238CFF, nature green #35D66F, action red #FF4B45, reward yellow #FFD43B, night #071521, manga white #F7F4EA. Original designs only (no franchise, no logos). Absolutely NO text, letters or numbers inside the images.
+Generate FIVE separate portrait images 768x1152, each an anime key-art vignette used as a category card thumbnail (it will be shown small, ~70x110 dp, so keep one strong readable subject and rich colour):
+1. card_all.png — a French new-town skyline at golden-hour sunset with a river, warm orange/purple sky.
+2. card_cities.png — a dense modern city with towers under a pink-magenta sunset.
+3. card_parks.png — a lush park with big round trees, a lawn and a path, bright daylight.
+4. card_rivers.png — a turquoise river winding between green hills toward snowy blue mountains.
+5. card_forests.png — a sunlit deep green forest with tall trees and light rays.
+Save them in the current directory with exactly those file names. Reply with the five paths only.
