@@ -17,6 +17,7 @@ import com.rideak.data.location.LocationSource
 import com.rideak.data.location.LocationSourceSelector
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.shared.di.AppInfo
+import com.rideak.shared.di.DeveloperSettings
 import com.rideak.shared.feature.home.HomeViewModel
 import com.rideak.shared.feature.profile.ProfileViewModel
 import com.rideak.shared.feature.rides.RidesViewModel
@@ -43,6 +44,7 @@ class RideakUiTest {
                     single { LocationSourceSelector(noGps, noGps) }
                     single { RideRecorder(get(), { noGps }, MainScope(), { 0L }, { "id" }) }
                     single { AppInfo(isDebug = true) }
+                    single { DeveloperSettings() }
                     viewModelOf(::HomeViewModel)
                     viewModelOf(::RidesViewModel)
                     viewModelOf(::ProfileViewModel)
