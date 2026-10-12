@@ -47,11 +47,10 @@ class MapViewModel(
         }
     }
 
-    private fun build(segments: List<List<GeoPoint>>, spots: List<GeoPoint>): WorldMapUiState {
+    private fun build(track: List<List<TrackPoint>>, spots: List<GeoPoint>): WorldMapUiState {
         val grid = SlippyTileGrid()
-        val cells = ExplorationEngine(grid)
-            .cellsFor(segments.flatten().map { TrackPoint(it, 0) })
-            .mapNotNull(grid::boundsOf)
+        val cells = ExplorationEngine.standard(grid).cellsForSegments(track).mapNotNull(grid::boundsOf)
+        val segments = track.map { segment -> segment.map { it.position } }
         val all = segments.flatten() + spots
         return WorldMapUiState(
             loading = false,
@@ -68,14 +67,14 @@ class MapViewModel(
         )
     }
 
-    /** Debug: a ~220 km random ride around Cergy touching about a thousand cells. */
-    private fun stressTrack(): List<GeoPoint> {
+    /** Debug: a ~220 km random ride around Cergy (5 m/s, one fix per second) touching about a thousand cells. */
+    private fun stressTrack(): List<TrackPoint> {
         val random = kotlin.random.Random(7)
         var lat = 49.0364; var lon = 2.0761; var heading = 0.0
         return List(45_000) {
             heading += random.nextDouble(-0.12, 0.12)
             lat += 0.000045 * kotlin.math.cos(heading); lon += 0.000068 * kotlin.math.sin(heading)
-            GeoPoint(lat, lon)
+            TrackPoint(GeoPoint(lat, lon), it * 1_000L)
         }
     }
 

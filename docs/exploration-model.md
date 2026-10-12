@@ -35,25 +35,29 @@ Aucune dépendance Android, Compose, carte ni GPS.
 4. **Une sortie peut faire progresser plusieurs régions** (Cergy, Cergy-Pontoise, Val-d'Oise) :
    la région ne possède pas les cellules de l'utilisateur, elle les *mesure*.
 
-## `cellsFor` à J0 — limites volontaires
+## Règles du moteur (V1)
 
-Une cellule par échantillon, après les filtres fournis. Pas d'interpolation, pas d'anti-dérive,
-pas de règle de vitesse. Testé : trace vide, un point, même cellule, plusieurs cellules,
-pas de doublon, filtre de précision.
+`ExplorationEngine.standard()` est la seule configuration utilisée par l'app (accueil, carte, sortie en cours,
+résumé). Les sorties sont passées **par segment d'enregistrement** (`cellsForSegments`) : une pause n'est jamais
+reliée à la reprise. Ordre d'application :
 
-## Ce que le moteur devra traiter (jalons suivants)
+| Étape | Classe | Seuil V1 | Pourquoi |
+|---|---|---|---|
+| Précision | `AccuracyFilter` | > 50 m rejeté | fix inutilisable |
+| Vitesse motorisée | `MotorizedSpeedFilter` | > 45 km/h soutenu ≥ 60 s | voiture/train ; une descente rapide de 20 s reste |
+| Dérive à l'arrêt | `DriftFilter` | point gardé s'il est à ≥ 15 m du dernier gardé | un cycliste arrêté n'explore pas les cellules voisines |
+| Interpolation | `Interpolation` | échantillons tous les 10 m, si l'écart ≤ 60 s **et** ≤ 400 m | un échantillonnage clairsemé ne saute pas de cellule |
 
-- **Interpolation** : deux points espacés traversent plusieurs cellules → parcourir le segment
-  (DDA sur la grille), mais **pas** au-dessus d'un trou de signal (au-delà de N s ou N m, on coupe).
-- **Dérive à l'arrêt** : un cycliste immobile ne doit pas explorer les cellules voisines
-  (détection d'arrêt sur fenêtre glissante, rayon de dérive).
-- **Précision** : rejeter ou pondérer les fix au-delà d'un seuil (`AccuracyFilter` est le premier pas).
-- **Vitesse anormale** : vitesse soutenue élevée = voiture/train. Seuil envisagé ~45 km/h,
-  **paramétrable, à valider avec de vraies traces** — jamais une constante métier.
-- **Anti-cheat** : nouvelles implémentations de `TrackFilter` ; aucune à J0.
+La vitesse est mesurée entre positions, jamais lue dans l'OS. Le tronçon motorisé retiré laisse un trou que
+l'interpolation ne comble pas (trop long ou trop loin). Tous ces seuils sont **à valider avec de vraies traces** ;
+les changer recalcule tout l'historique (invariant 3). Tests : `ExplorationEngineTest`.
+
+Reste à faire :
+
+- **TRAVERSED → EXPLORED** : règle à définir (nombre de passages, densité de voisins, temps passé).
 - **Découverte de lieux** selon la géométrie : rayon pour `Point`, croisement/proximité pour
   `LineString`, entrée effective pour `Polygon`.
-- **TRAVERSED → EXPLORED** : règle à définir (nombre de passages, densité de voisins, temps passé).
+- **Anti-cheat** : nouvelles implémentations de `TrackFilter` (téléportation, traces trop régulières).
 
 ## Choix de la grille
 

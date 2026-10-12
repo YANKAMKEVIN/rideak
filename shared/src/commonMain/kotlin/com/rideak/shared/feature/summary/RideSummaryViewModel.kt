@@ -4,9 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rideak.data.RideRepository
 import com.rideak.exploration.ExplorationEngine
-import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.TrackPoint
 import com.rideak.exploration.RideId
-import com.rideak.exploration.SlippyTileGrid
 import com.rideak.ride.ProfilePoint
 import com.rideak.ride.RideMetrics
 import com.rideak.ride.RideMetricsCalculator
@@ -24,7 +23,7 @@ data class RideSummaryUiState(
     val ride: RideSummary? = null,
     /** Replayed from the stored points: also gives values not stored in the summary (descent). */
     val metrics: RideMetrics = RideMetrics(),
-    val segments: List<List<GeoPoint>> = emptyList(),
+    val segments: List<List<TrackPoint>> = emptyList(),
     val spots: List<Spot> = emptyList(),
     val profile: List<ProfilePoint> = emptyList(),
     val cellsTraversed: Int = 0,
@@ -45,10 +44,10 @@ class RideSummaryViewModel(rideId: String, repository: RideRepository) : ViewMod
                     loading = false,
                     ride = ride,
                     metrics = RideMetricsCalculator().compute(track).metrics,
-                    segments = track.map { segment -> segment.map { it.position } },
+                    segments = track,
                     spots = spots,
                     profile = elevationProfile(track),
-                    cellsTraversed = ExplorationEngine(SlippyTileGrid()).cellsFor(track.flatten()).size,
+                    cellsTraversed = ExplorationEngine.standard().cellsForSegments(track).size,
                 )
             }
         }

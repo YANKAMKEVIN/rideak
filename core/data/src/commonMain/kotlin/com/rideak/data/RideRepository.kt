@@ -27,9 +27,8 @@ interface RideRepository {
     suspend fun track(rideId: RideId): List<List<TrackPoint>>
     suspend fun spots(rideId: RideId): List<Spot>
     fun observeFinishedRides(): Flow<List<RideSummary>>
-    suspend fun finishedPositions(): List<GeoPoint>
     /** Every recording segment of every finished ride, as separate lines. */
-    suspend fun finishedSegments(): List<List<GeoPoint>>
+    suspend fun finishedSegments(): List<List<TrackPoint>>
     suspend fun finishedSpots(): List<Spot>
 }
 
@@ -70,9 +69,7 @@ class RoomRideRepository(private val dao: RideDao) : RideRepository {
             .entries
             .sortedBy { it.key }
             .map { (_, segment) ->
-                segment.map {
-                    TrackPoint(GeoPoint(it.latitude, it.longitude), it.timestamp, it.accuracy, it.altitude, it.speed)
-                }
+                segment.map { it.toTrackPoint() }
             }
 
     override suspend fun spots(rideId: RideId) = dao.spots(rideId.value).map {
@@ -82,18 +79,19 @@ class RoomRideRepository(private val dao: RideDao) : RideRepository {
     override fun observeFinishedRides(): Flow<List<RideSummary>> =
         dao.observeFinishedRides().map { rows -> rows.map { it.toSummary() } }
 
-    override suspend fun finishedPositions() = dao.finishedPositions().map { GeoPoint(it.latitude, it.longitude) }
-
-    override suspend fun finishedSegments(): List<List<GeoPoint>> =
+    override suspend fun finishedSegments(): List<List<TrackPoint>> =
         dao.finishedPoints()
             .groupBy { it.rideId to it.segment }
             .values
-            .map { segment -> segment.map { GeoPoint(it.latitude, it.longitude) } }
+            .map { segment -> segment.map { it.toTrackPoint() } }
 
     override suspend fun finishedSpots() = dao.finishedSpots().map {
         Spot(SpotId(it.id), RideId(it.rideId), GeoPoint(it.latitude, it.longitude), it.createdAt)
     }
 }
+
+private fun TrackPointEntity.toTrackPoint() =
+    TrackPoint(GeoPoint(latitude, longitude), timestamp, accuracy, altitude, speed)
 
 private fun RideSummary.toEntity() = RideEntity(
     id = id.value,

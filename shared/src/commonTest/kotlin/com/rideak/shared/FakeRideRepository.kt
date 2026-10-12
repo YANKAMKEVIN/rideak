@@ -1,7 +1,6 @@
 package com.rideak.shared
 
 import com.rideak.data.RideRepository
-import com.rideak.exploration.GeoPoint
 import com.rideak.exploration.RideId
 import com.rideak.exploration.TrackPoint
 import com.rideak.ride.RideStatus
@@ -30,7 +29,6 @@ class FakeRideRepository : RideRepository {
     override suspend fun spots(rideId: RideId) = spots.filter { it.rideId == rideId }
     override fun observeFinishedRides(): Flow<List<RideSummary>> =
         rides.map { all -> all.values.filter { it.status == RideStatus.FINISHED } }
-    override suspend fun finishedPositions(): List<GeoPoint> = emptyList()
-    override suspend fun finishedSegments(): List<List<GeoPoint>> = emptyList()
+    override suspend fun finishedSegments(): List<List<TrackPoint>> = emptyList()
     override suspend fun finishedSpots(): List<Spot> = emptyList()
 }

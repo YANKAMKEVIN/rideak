@@ -39,12 +39,6 @@ interface RideDao {
     suspend fun points(rideId: String): List<TrackPointEntity>
 
     @Query(
-        "SELECT tp.latitude, tp.longitude FROM track_points tp JOIN rides r ON r.id = tp.rideId " +
-            "WHERE r.status = 'FINISHED'",
-    )
-    suspend fun finishedPositions(): List<PositionRow>
-
-    @Query(
         "SELECT tp.* FROM track_points tp JOIN rides r ON r.id = tp.rideId " +
             "WHERE r.status = 'FINISHED' ORDER BY tp.rideId, tp.segment, tp.timestamp, tp.id",
     )

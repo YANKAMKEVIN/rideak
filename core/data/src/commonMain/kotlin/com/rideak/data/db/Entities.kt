@@ -55,5 +55,3 @@ data class RideWithSpotCount(
     @Embedded val ride: RideEntity,
     val spotCount: Int,
 )
-
-data class PositionRow(val latitude: Double, val longitude: Double)

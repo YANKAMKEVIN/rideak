@@ -214,7 +214,7 @@ private fun ActiveRide(
         val panelWidth = maxWidth * 0.45f
         // The real map follows the rider; insets keep its attribution above the controls.
         RideMap(
-            segments = listOf(state.track),
+            track = listOf(state.track),
             modifier = Modifier.fillMaxSize(),
             follow = true,
             insets = PaddingValues(top = 230.dp, bottom = 130.dp),

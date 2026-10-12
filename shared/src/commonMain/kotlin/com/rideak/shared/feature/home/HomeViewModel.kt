@@ -6,8 +6,6 @@ import com.rideak.data.RideRepository
 import com.rideak.data.recorder.RecorderState
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.exploration.ExplorationEngine
-import com.rideak.exploration.SlippyTileGrid
-import com.rideak.exploration.TrackPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,12 +23,12 @@ data class HomeUiState(
 )
 
 class HomeViewModel(repository: RideRepository, recorder: RideRecorder) : ViewModel() {
-    private val engine = ExplorationEngine(SlippyTileGrid())
+    private val engine = ExplorationEngine.standard()
 
     private val totals = repository.observeFinishedRides().map { rides ->
         // Exploration is derived from the stored points every time: nothing to keep in sync.
         val cells = withContext(Dispatchers.Default) {
-            engine.cellsFor(repository.finishedPositions().map { TrackPoint(it, 0) }).size
+            engine.cellsForSegments(repository.finishedSegments()).size
         }
         HomeUiState(
             totalDistanceMeters = rides.sumOf { it.distanceMeters },

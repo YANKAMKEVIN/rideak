@@ -2,7 +2,6 @@ package com.rideak.data.recorder
 
 import com.rideak.data.RideRepository
 import com.rideak.data.location.LocationSource
-import com.rideak.exploration.GeoPoint
 import com.rideak.exploration.RideId
 import com.rideak.exploration.TrackPoint
 import com.rideak.ride.RideMetrics
@@ -41,7 +40,7 @@ sealed interface RecorderState {
         /** Restored paused after the app was killed during a ride. */
         val recovered: Boolean,
         /** Usable positions of the ride so far, for the live track preview. */
-        val track: List<GeoPoint> = emptyList(),
+        val track: List<TrackPoint> = emptyList(),
     ) : RecorderState
 }
 
@@ -92,7 +91,7 @@ class RideRecorder(
         var lastFixReceivedAt: Long? = null,
         var lastFlushAt: Long,
         val buffer: MutableList<TrackPoint> = mutableListOf(),
-        val positions: MutableList<GeoPoint> = mutableListOf(),
+        val positions: MutableList<TrackPoint> = mutableListOf(),
     ) {
         val recording get() = segmentStartedAt != null
         fun activeDuration(now: Long) = activeBeforeSegment + (segmentStartedAt?.let { now - it } ?: 0)
@@ -122,7 +121,7 @@ class RideRecorder(
             spotCount = ride.spotCount,
             recovered = true,
             lastFlushAt = now,
-        ).also { recovered -> segments.flatten().filter(::drawable).mapTo(recovered.positions) { it.position } }
+        ).also { recovered -> segments.flatten().filterTo(recovered.positions, ::drawable) }
         flush(RideStatus.PAUSED)
         publish()
     }
@@ -226,7 +225,7 @@ class RideRecorder(
         s.metrics = calculator.add(s.metrics, point)
         s.lastFixReceivedAt = clock()
         s.buffer += point
-        if (drawable(point)) s.positions += point.position
+        if (drawable(point)) s.positions += point
         if (s.buffer.size >= config.flushEveryPoints) flush(RideStatus.RECORDING)
         publish()
     }

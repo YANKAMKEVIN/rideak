@@ -117,7 +117,7 @@ private fun Summary(state: RideSummaryUiState, onBack: () -> Unit) {
         }
 
         RideMap(
-            segments = state.segments,
+            track = state.segments,
             spots = state.spots.map { it.position },
             modifier = Modifier.fillMaxWidth().height(280.dp),
         )

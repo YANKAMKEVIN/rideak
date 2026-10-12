@@ -43,20 +43,21 @@ private val Cergy = GeoPoint(49.0364, 2.0761)
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 fun RideMap(
-    segments: List<List<GeoPoint>>,
+    track: List<List<TrackPoint>>,
     modifier: Modifier = Modifier,
     spots: List<GeoPoint> = emptyList(),
     follow: Boolean = false,
     insets: PaddingValues = PaddingValues(0.dp),
 ) {
     val colors = RideakTheme.colors
+    val segments = remember(track) { track.map { segment -> segment.map { it.position } } }
     val current = segments.lastOrNull { it.isNotEmpty() }?.last()
     val start = current ?: segments.flatten().firstOrNull() ?: Cergy
 
     val tracks = remember(segments) { GeoJson.lines(segments) }
-    val cells = remember(segments) {
+    val cells = remember(track) {
         val grid = SlippyTileGrid()
-        GeoJson.squares(ExplorationEngine(grid).cellsFor(segments.flatten().map { TrackPoint(it, 0) }).mapNotNull(grid::boundsOf))
+        GeoJson.squares(ExplorationEngine.standard(grid).cellsForSegments(track).mapNotNull(grid::boundsOf))
     }
     val spotsJson = remember(spots) { GeoJson.points(spots) }
     val here = remember(current) { GeoJson.points(listOfNotNull(current)) }
