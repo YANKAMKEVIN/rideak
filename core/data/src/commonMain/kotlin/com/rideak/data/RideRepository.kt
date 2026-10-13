@@ -29,6 +29,8 @@ interface RideRepository {
     fun observeFinishedRides(): Flow<List<RideSummary>>
     /** Every recording segment of every finished ride, as separate lines. */
     suspend fun finishedSegments(): List<List<TrackPoint>>
+    /** Same as [finishedSegments], limited to rides started before [startedAtEpochMillis]. */
+    suspend fun finishedSegmentsBefore(startedAtEpochMillis: Long): List<List<TrackPoint>>
     suspend fun finishedSpots(): List<Spot>
 }
 
@@ -79,16 +81,18 @@ class RoomRideRepository(private val dao: RideDao) : RideRepository {
     override fun observeFinishedRides(): Flow<List<RideSummary>> =
         dao.observeFinishedRides().map { rows -> rows.map { it.toSummary() } }
 
-    override suspend fun finishedSegments(): List<List<TrackPoint>> =
-        dao.finishedPoints()
-            .groupBy { it.rideId to it.segment }
-            .values
-            .map { segment -> segment.map { it.toTrackPoint() } }
+    override suspend fun finishedSegments() = dao.finishedPoints().toSegments()
+
+    override suspend fun finishedSegmentsBefore(startedAtEpochMillis: Long) =
+        dao.finishedPointsBefore(startedAtEpochMillis).toSegments()
 
     override suspend fun finishedSpots() = dao.finishedSpots().map {
         Spot(SpotId(it.id), RideId(it.rideId), GeoPoint(it.latitude, it.longitude), it.createdAt)
     }
 }
+
+private fun List<TrackPointEntity>.toSegments(): List<List<TrackPoint>> =
+    groupBy { it.rideId to it.segment }.values.map { segment -> segment.map { it.toTrackPoint() } }
 
 private fun TrackPointEntity.toTrackPoint() =
     TrackPoint(GeoPoint(latitude, longitude), timestamp, accuracy, altitude, speed)

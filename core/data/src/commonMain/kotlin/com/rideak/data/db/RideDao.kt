@@ -44,6 +44,12 @@ interface RideDao {
     )
     suspend fun finishedPoints(): List<TrackPointEntity>
 
+    @Query(
+        "SELECT tp.* FROM track_points tp JOIN rides r ON r.id = tp.rideId " +
+            "WHERE r.status = 'FINISHED' AND r.startedAt < :startedAt ORDER BY tp.rideId, tp.segment, tp.timestamp, tp.id",
+    )
+    suspend fun finishedPointsBefore(startedAt: Long): List<TrackPointEntity>
+
     @Query("SELECT s.* FROM spots s JOIN rides r ON r.id = s.rideId WHERE r.status = 'FINISHED' ORDER BY s.createdAt")
     suspend fun finishedSpots(): List<SpotEntity>
 

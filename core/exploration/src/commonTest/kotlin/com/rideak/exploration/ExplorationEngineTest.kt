@@ -143,4 +143,16 @@ class ExplorationEngineTest {
         val train = (1..120).map { i -> point(49.0364, 2.0745 + east(45.0 + i * 30.0), (9 + i) * 1_000L) }
         assertEquals(1, ExplorationEngine.standard(SlippyTileGrid(17)).cellsFor(bike + train).size)
     }
+
+    @Test
+    fun revealedCellsExcludeEverythingRiddenBefore() {
+        val a = point(49.0364, 2.0745, 0)
+        val b = point(49.0364, 2.0775, 30_000) // next cell east
+        val c = point(49.0364, 2.0800, 60_000) // and the one after
+        val earlier = listOf(listOf(a, b))
+        val ride = listOf(listOf(a, b, c))
+        assertEquals(setOf(engine.cellsFor(listOf(c)).single()), engine.revealedBy(ride, earlier))
+        assertEquals(engine.cellsForSegments(ride), engine.revealedBy(ride, before = emptyList()))
+        assertTrue(engine.revealedBy(earlier, before = ride).isEmpty())
+    }
 }

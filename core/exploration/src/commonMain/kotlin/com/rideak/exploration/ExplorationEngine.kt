@@ -102,6 +102,13 @@ class ExplorationEngine(
     fun cellsForSegments(segments: List<List<TrackPoint>>): Set<CellId> =
         LinkedHashSet<CellId>().also { cells -> segments.forEach { addCells(it, cells) } }
 
+    /**
+     * Cells a ride revealed for the first time: touched by [ride], never by any ride [before] it.
+     * Derived on demand like everything else, so replaying the history keeps it consistent.
+     */
+    fun revealedBy(ride: List<List<TrackPoint>>, before: List<List<TrackPoint>>): Set<CellId> =
+        cellsForSegments(ride) - cellsForSegments(before)
+
     private fun addCells(track: List<TrackPoint>, cells: MutableSet<CellId>) {
         val points = filters.fold(track) { points, filter -> filter.apply(points) }
         points.forEachIndexed { i, point ->

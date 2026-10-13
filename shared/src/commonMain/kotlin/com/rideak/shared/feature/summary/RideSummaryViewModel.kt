@@ -27,6 +27,8 @@ data class RideSummaryUiState(
     val spots: List<Spot> = emptyList(),
     val profile: List<ProfilePoint> = emptyList(),
     val cellsTraversed: Int = 0,
+    /** Cells this ride touched that no earlier ride had: the "world revealing itself". */
+    val cellsRevealed: Int = 0,
 )
 
 class RideSummaryViewModel(rideId: String, repository: RideRepository) : ViewModel() {
@@ -39,7 +41,9 @@ class RideSummaryViewModel(rideId: String, repository: RideRepository) : ViewMod
             val ride = repository.ride(id)
             val track = repository.track(id)
             val spots = repository.spots(id)
+            val before = ride?.let { repository.finishedSegmentsBefore(it.startedAtEpochMillis) }.orEmpty()
             _state.value = withContext(Dispatchers.Default) {
+                val engine = ExplorationEngine.standard()
                 RideSummaryUiState(
                     loading = false,
                     ride = ride,
@@ -47,7 +51,8 @@ class RideSummaryViewModel(rideId: String, repository: RideRepository) : ViewMod
                     segments = track,
                     spots = spots,
                     profile = elevationProfile(track),
-                    cellsTraversed = ExplorationEngine.standard().cellsForSegments(track).size,
+                    cellsTraversed = engine.cellsForSegments(track).size,
+                    cellsRevealed = engine.revealedBy(track, before).size,
                 )
             }
         }

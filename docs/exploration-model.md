@@ -52,6 +52,10 @@ La vitesse est mesurée entre positions, jamais lue dans l'OS. Le tronçon motor
 l'interpolation ne comble pas (trop long ou trop loin). Tous ces seuils sont **à valider avec de vraies traces** ;
 les changer recalcule tout l'historique (invariant 3). Tests : `ExplorationEngineTest`.
 
+**Zones dévoilées par une sortie** : `revealedBy(sortie, sortiesTerminéesAvant)` = cellules de la sortie jamais
+touchées par une sortie commencée avant elle. Rien n'est stocké : rejouer l'historique donne le même chiffre.
+Affiché en fin de sortie (`RevealBanner`) ; une sortie en terrain connu le dit sans le reprocher.
+
 Reste à faire :
 
 - **TRAVERSED → EXPLORED** : règle à définir (nombre de passages, densité de voisins, temps passé).

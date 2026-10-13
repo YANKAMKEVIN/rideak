@@ -30,5 +30,6 @@ class FakeRideRepository : RideRepository {
     override fun observeFinishedRides(): Flow<List<RideSummary>> =
         rides.map { all -> all.values.filter { it.status == RideStatus.FINISHED } }
     override suspend fun finishedSegments(): List<List<TrackPoint>> = emptyList()
+    override suspend fun finishedSegmentsBefore(startedAtEpochMillis: Long): List<List<TrackPoint>> = emptyList()
     override suspend fun finishedSpots(): List<Spot> = emptyList()
 }

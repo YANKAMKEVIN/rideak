@@ -11,6 +11,10 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.AdventureButton
+import com.rideak.shared.designsystem.components.RevealBanner
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.rideak.shared.navigation.RideakApp
 import com.rideak.data.RideRepository
 import com.rideak.data.location.LocationSource
@@ -75,5 +79,16 @@ class RideakUiTest {
         onNodeWithText("Aucune sortie pour l'instant. Pars à l'aventure depuis l'accueil !").assertIsDisplayed()
         onNodeWithText("Profil").performClick()
         onNodeWithText("Sortie simulée").assertIsDisplayed()
+    }
+
+    @Test
+    fun revealBannerCelebratesNewCellsAndStaysQuietOnKnownGround() = runComposeUiTest {
+        var revealed by mutableStateOf(12)
+        setContent { RideakTheme { RevealBanner(revealed = revealed, traversed = 30) } }
+        onNodeWithContentDescription("+12 zones dévoilées ! sur 30 traversées · ta carte s'agrandit").assertIsDisplayed()
+        revealed = 1
+        onNodeWithContentDescription("+1 zone dévoilée ! sur 30 traversées · ta carte s'agrandit").assertIsDisplayed()
+        revealed = 0
+        onNodeWithContentDescription("Terrain connu", substring = true).assertIsDisplayed()
     }
 }
