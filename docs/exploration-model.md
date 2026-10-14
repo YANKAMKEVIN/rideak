@@ -56,11 +56,26 @@ les changer recalcule tout l'historique (invariant 3). Tests : `ExplorationEngin
 touchées par une sortie commencée avant elle. Rien n'est stocké : rejouer l'historique donne le même chiffre.
 Affiché en fin de sortie (`RevealBanner`) ; une sortie en terrain connu le dit sans le reprocher.
 
+## Découverte de lieux (V1)
+
+`PlaceDiscoverer` travaille sur les mêmes tronçons nettoyés que les cellules (`ExplorationEngine.pathsFor` :
+filtres appliqués, coupure aux pauses et aux trous), échantillonnés tous les 10 m. Une dérive GPS, un trou de
+signal ou un trajet en train ne découvrent donc rien non plus.
+
+| Géométrie | Découvert quand… | Seuil V1 |
+|---|---|---|
+| `Point` (monument, point de vue) | on passe à proximité | 40 m |
+| `LineString` / `MultiLineString` (rivière) | on la traverse ou la longe | 30 m |
+| `Polygon` / `MultiPolygon` (parc, forêt) | on y entre | — |
+| idem, catégorie `LAKE` | on y entre **ou** on longe la rive | 30 m |
+
+Rien n'est stocké : « nouveaux lieux » d'une sortie = découverts par elle − découverts par les sorties
+terminées commencées avant (`newlyDiscovered`). Affichés en fin de sortie (« NOUVEL ENDROIT ! ») et dans
+l'onglet Lieux (noms des lieux découverts, nombre de lieux encore cachés par catégorie).
+
 Reste à faire :
 
 - **TRAVERSED → EXPLORED** : règle à définir (nombre de passages, densité de voisins, temps passé).
-- **Découverte de lieux** selon la géométrie : rayon pour `Point`, croisement/proximité pour
-  `LineString`, entrée effective pour `Polygon`.
 - **Anti-cheat** : nouvelles implémentations de `TrackFilter` (téléportation, traces trop régulières).
 
 ## Choix de la grille

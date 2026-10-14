@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.RevealBanner
+import com.rideak.shared.feature.places.NewPlaces
 import com.rideak.shared.feature.map.RideMap
 import com.rideak.shared.designsystem.icons.RideakIcons
 import com.rideak.shared.format.formatClock
@@ -125,6 +126,7 @@ private fun Summary(state: RideSummaryUiState, onBack: () -> Unit) {
 
         Column(Modifier.padding(spacing.m), verticalArrangement = Arrangement.spacedBy(spacing.m)) {
             RevealBanner(revealed = state.cellsRevealed, traversed = state.cellsTraversed)
+            NewPlaces(state.newPlaces)
             if (tab == 0) {
                 StatsPanel(state)
                 Text(

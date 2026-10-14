@@ -18,7 +18,7 @@ import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.RideakBottomBar
 import com.rideak.shared.feature.home.HomeScreen
 import com.rideak.shared.feature.map.WorldMapScreen
-import com.rideak.shared.feature.placeholder.PlaceholderScreen
+import com.rideak.shared.feature.places.PlacesScreen
 import com.rideak.shared.feature.profile.ProfileScreen
 import com.rideak.shared.feature.ride.RideScreen
 import com.rideak.shared.feature.rides.RidesScreen
@@ -60,7 +60,7 @@ fun RideakApp() {
                 composable<HomeRoute> { HomeScreen(onRide = { navController.navigate(RideRoute) { launchSingleTop = true } }) }
                 composable<MapRoute> { WorldMapScreen() }
                 composable<RidesRoute> { RidesScreen(onOpenRide = { navController.navigate(RideSummaryRoute(it)) }) }
-                composable<PlacesRoute> { PlaceholderScreen("Lieux", "Tes lieux découverts et tes ❤️ arrivent bientôt.") }
+                composable<PlacesRoute> { PlacesScreen() }
                 composable<ProfileRoute> { ProfileScreen() }
                 composable<RideRoute> {
                     RideScreen(

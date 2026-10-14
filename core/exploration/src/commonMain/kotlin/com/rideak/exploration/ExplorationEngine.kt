@@ -95,10 +95,16 @@ class ExplorationEngine(
     private val filters: List<TrackFilter> = emptyList(),
     private val interpolation: Interpolation? = null,
 ) {
-    fun cellsFor(track: List<TrackPoint>): Set<CellId> = LinkedHashSet<CellId>().also { addCells(track, it) }
+    fun cellsFor(track: List<TrackPoint>): Set<CellId> = cellsForSegments(listOf(track))
 
-    fun cellsForSegments(segments: List<List<TrackPoint>>): Set<CellId> =
-        LinkedHashSet<CellId>().also { cells -> segments.forEach { addCells(it, cells) } }
+    fun cellsForSegments(segments: List<List<TrackPoint>>): Set<CellId> {
+        val cells = LinkedHashSet<CellId>()
+        for (path in pathsFor(segments)) {
+            if (path.size == 1) cells += grid.cellAt(path[0])
+            path.zipWithNext { a, b -> samplesBetween(a, b, interpolation?.stepMeters ?: Double.MAX_VALUE).mapTo(cells, grid::cellAt) }
+        }
+        return cells
+    }
 
     /**
      * Cells a ride revealed for the first time: touched by [ride], never by any ride [before] it.
@@ -107,20 +113,32 @@ class ExplorationEngine(
     fun revealedBy(ride: List<List<TrackPoint>>, before: List<List<TrackPoint>>): Set<CellId> =
         cellsForSegments(ride) - cellsForSegments(before)
 
-    private fun addCells(track: List<TrackPoint>, cells: MutableSet<CellId>) {
-        val points = filters.fold(track) { points, filter -> filter.apply(points) }
-        points.forEachIndexed { i, point ->
-            cells += grid.cellAt(point.position)
-            val next = points.getOrNull(i + 1) ?: return@forEachIndexed
-            interpolation?.let { addBetween(point, next, it, cells) }
+    /**
+     * Where the rider really went: filtered samples, split into continuous stretches wherever a
+     * gap must not be bridged (pause, lost signal, removed motorised travel, or no [interpolation]).
+     * Cells and place discoveries are both derived from these stretches.
+     */
+    fun pathsFor(segments: List<List<TrackPoint>>): List<List<GeoPoint>> {
+        val paths = mutableListOf<List<GeoPoint>>()
+        for (segment in segments) {
+            val points = filters.fold(segment) { points, filter -> filter.apply(points) }
+            var current = mutableListOf<GeoPoint>()
+            points.forEachIndexed { i, point ->
+                if (i > 0 && !bridgeable(points[i - 1], point)) {
+                    paths += current
+                    current = mutableListOf()
+                }
+                current += point.position
+            }
+            if (current.isNotEmpty()) paths += current
         }
+        return paths
     }
 
-    private fun addBetween(a: TrackPoint, b: TrackPoint, rule: Interpolation, cells: MutableSet<CellId>) {
-        val meters = a.position.distanceTo(b.position)
-        if (meters <= rule.stepMeters) return
-        if (meters > rule.maxGapMeters || b.timestampEpochMillis - a.timestampEpochMillis > rule.maxGapMillis) return
-        samplesBetween(a.position, b.position, rule.stepMeters).mapTo(cells, grid::cellAt)
+    private fun bridgeable(a: TrackPoint, b: TrackPoint): Boolean {
+        val rule = interpolation ?: return false
+        return a.position.distanceTo(b.position) <= rule.maxGapMeters &&
+            b.timestampEpochMillis - a.timestampEpochMillis <= rule.maxGapMillis
     }
 
     companion object {

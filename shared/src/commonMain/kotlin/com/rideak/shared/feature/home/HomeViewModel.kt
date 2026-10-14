@@ -8,6 +8,7 @@ import com.rideak.data.recorder.RideRecorder
 import com.rideak.exploration.ExplorationEngine
 import com.rideak.shared.feature.territory.RegionSource
 import com.rideak.shared.feature.territory.TerritoryProgress
+import com.rideak.shared.feature.territory.regions
 import com.rideak.shared.feature.territory.territoryOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted

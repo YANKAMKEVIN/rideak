@@ -30,14 +30,18 @@ fun rideableCells(
  * ring 49.05,2.03;49.06,2.04;…      exterior ring of one polygon
  * hole 49.05,2.03;…                 hole of the polygon above (optional, repeatable)
  * cells 66291/44992 66292/44992 …   cell ids without the "grid/" prefix
+ * place <id>\t<CATEGORY>\t<name>\t<geometry>   zero or more, tab-separated
  * ```
+ *
+ * Place geometry: `P lat,lon` (point), `L ring|ring` (one or more lines),
+ * `A exterior#hole|exterior` (one or more polygons, holes after `#`), coordinates as in rings.
  */
 object RegionPackCodec {
     private const val HEADER = "RIDEAK-REGION 1"
 
-    data class Pack(val region: ExplorationRegion, val attribution: String)
+    data class Pack(val region: ExplorationRegion, val attribution: String, val places: List<Place> = emptyList())
 
-    fun encode(region: ExplorationRegion, attribution: String): String = buildString {
+    fun encode(region: ExplorationRegion, attribution: String, places: List<Place> = emptyList()): String = buildString {
         appendLine(HEADER)
         appendLine("id ${region.id.value}")
         appendLine("name ${region.name}")
@@ -49,6 +53,10 @@ object RegionPackCodec {
         }
         val prefix = "${region.gridId}/"
         appendLine("cells " + region.rideableCells.map { it.value.removePrefix(prefix) }.sorted().joinToString(" "))
+        places.forEach { place ->
+            require('\t' !in place.name && '\n' !in place.name) { "unsupported place name: ${place.name}" }
+            appendLine("place ${place.id.value}\t${place.category}\t${place.name}\t${place.geometry.encode()}")
+        }
     }
 
     fun decode(text: String): Pack {
@@ -56,11 +64,16 @@ object RegionPackCodec {
         require(lines.firstOrNull() == HEADER) { "not a RIDEAK region pack (v1)" }
         val fields = mutableMapOf<String, String>()
         val polygons = mutableListOf<PlaceGeometry.Polygon>()
+        val places = mutableListOf<Place>()
         for (line in lines.drop(1)) {
             val key = line.substringBefore(' ')
             val value = line.substringAfter(' ', "")
             when (key) {
                 "ring" -> polygons += PlaceGeometry.Polygon(value.decodeRing())
+                "place" -> {
+                    val (id, category, name, geometry) = value.split('\t').also { require(it.size == 4) { "bad place: $line" } }
+                    places += Place(PlaceId(id), name, PlaceCategory.valueOf(category), geometry.decodeGeometry())
+                }
                 "hole" -> {
                     val last = requireNotNull(polygons.removeLastOrNull()) { "hole before any ring" }
                     polygons += last.copy(holes = last.holes + listOf(value.decodeRing()))
@@ -77,10 +90,33 @@ object RegionPackCodec {
             gridId = gridId,
             rideableCells = field("cells").split(' ').filter { it.isNotEmpty() }.mapTo(LinkedHashSet()) { CellId("$gridId/$it") },
         )
-        return Pack(region, field("attribution"))
+        return Pack(region, field("attribution"), places)
     }
 
     private fun List<GeoPoint>.encode() = joinToString(";") { "${it.latitude.round6()},${it.longitude.round6()}" }
+
+    private fun PlaceGeometry.encode(): String = when (this) {
+        is PlaceGeometry.Point -> "P " + listOf(position).encode()
+        is PlaceGeometry.LineString -> "L " + points.encode()
+        is PlaceGeometry.MultiLineString -> "L " + lines.joinToString("|") { it.points.encode() }
+        is PlaceGeometry.Polygon -> "A " + encodeArea()
+        is PlaceGeometry.MultiPolygon -> "A " + polygons.joinToString("|") { it.encodeArea() }
+    }
+
+    private fun PlaceGeometry.Polygon.encodeArea() = (listOf(exterior) + holes).joinToString("#") { it.encode() }
+
+    private fun String.decodeGeometry(): PlaceGeometry {
+        val body = substringAfter(' ')
+        return when (substringBefore(' ')) {
+            "P" -> PlaceGeometry.Point(body.decodeRing().single())
+            "L" -> body.split('|').map { PlaceGeometry.LineString(it.decodeRing()) }.let { it.singleOrNull() ?: PlaceGeometry.MultiLineString(it) }
+            "A" -> body.split('|').map { area ->
+                val rings = area.split('#').map { it.decodeRing() }
+                PlaceGeometry.Polygon(rings.first(), rings.drop(1))
+            }.let { it.singleOrNull() ?: PlaceGeometry.MultiPolygon(it) }
+            else -> throw IllegalArgumentException("unknown geometry: ${take(20)}")
+        }
+    }
 
     private fun String.decodeRing() = split(';').map { pair ->
         GeoPoint(pair.substringBefore(',').toDouble(), pair.substringAfter(',').toDouble())

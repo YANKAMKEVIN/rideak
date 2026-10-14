@@ -10,6 +10,7 @@ import com.rideak.exploration.TrackPoint
 import com.rideak.shared.di.DeveloperSettings
 import com.rideak.shared.feature.territory.RegionSource
 import com.rideak.shared.feature.territory.TerritoryProgress
+import com.rideak.shared.feature.territory.regions
 import com.rideak.shared.feature.territory.territoryOf
 import com.rideak.exploration.ExplorationRegion
 import kotlinx.coroutines.Dispatchers

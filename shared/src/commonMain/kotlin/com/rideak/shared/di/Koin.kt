@@ -6,6 +6,7 @@ import com.rideak.data.platformDataModule
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.shared.feature.home.HomeViewModel
 import com.rideak.shared.feature.map.MapViewModel
+import com.rideak.shared.feature.places.PlacesViewModel
 import com.rideak.shared.feature.profile.ProfileViewModel
 import com.rideak.shared.feature.ride.RideViewModel
 import com.rideak.shared.feature.rides.RidesViewModel
@@ -37,7 +38,8 @@ private val uiModule = module {
     viewModelOf(::RideViewModel)
     viewModelOf(::RidesViewModel)
     viewModelOf(::ProfileViewModel)
-    viewModel { (rideId: String) -> RideSummaryViewModel(rideId, get()) }
+    viewModelOf(::PlacesViewModel)
+    viewModel { (rideId: String) -> RideSummaryViewModel(rideId, get(), get()) }
 }
 
 /** Called once by each host app at startup. */

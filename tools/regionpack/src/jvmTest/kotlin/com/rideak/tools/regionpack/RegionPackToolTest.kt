@@ -5,6 +5,10 @@ import com.rideak.exploration.PlaceGeometry
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import com.rideak.exploration.PlaceCategory
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.assertTrue
 
 class RegionPackToolTest {
@@ -38,5 +42,37 @@ class RegionPackToolTest {
             ),
         )
         assertEquals(4, square.simplified(toleranceMeters = 15.0).exterior.size)
+    }
+
+    @Test
+    fun placeCategoriesFromTags() {
+        assertEquals(PlaceCategory.PARK, categoryOf(mapOf("leisure" to "park")))
+        assertEquals(PlaceCategory.FOREST, categoryOf(mapOf("natural" to "wood")))
+        assertEquals(PlaceCategory.LAKE, categoryOf(mapOf("natural" to "water", "water" to "lake")))
+        assertEquals(PlaceCategory.LAKE, categoryOf(mapOf("natural" to "water")))
+        assertNull(categoryOf(mapOf("natural" to "water", "water" to "river")), "the waterway line stands for it")
+        assertEquals(PlaceCategory.RIVER, categoryOf(mapOf("waterway" to "river")))
+        assertEquals(PlaceCategory.MONUMENT, categoryOf(mapOf("historic" to "memorial")))
+        assertNull(categoryOf(mapOf("amenity" to "parking")))
+    }
+
+    @Test
+    fun placesWithTheSameNameMergeAndOutsidersAreDropped() {
+        val boundary = listOf(PlaceGeometry.Polygon(listOf(GeoPoint(49.0, 2.0), GeoPoint(49.0, 2.1), GeoPoint(49.1, 2.1), GeoPoint(49.1, 2.0))))
+        fun way(id: Int, tags: String, vararg points: Pair<Double, Double>) = Json.parseToJsonElement(
+            """{"type":"way","id":$id,"tags":{$tags},"geometry":[${points.joinToString { "{\"lat\":${it.first},\"lon\":${it.second}}" }}]}""",
+        ).jsonObject
+        val river = """"waterway":"river","name":"L'Oise""""
+        val elements = listOf(
+            way(2, river, 49.05 to 2.05, 49.06 to 2.06),
+            way(1, river, 49.06 to 2.06, 49.07 to 2.07),
+            way(3, """"leisure":"park","name":"Loin"""", 50.0 to 2.0, 50.0 to 2.01, 50.01 to 2.01, 50.0 to 2.0),
+            way(4, """"leisure":"park","name":"Sans fin"""", 49.05 to 2.05, 49.05 to 2.06, 49.06 to 2.06),
+        )
+        val places = placesOf(elements, boundary)
+        assertEquals(1, places.size, "outside park and unclosed park dropped")
+        val oise = places.single()
+        assertEquals("way/1", oise.id.value)
+        assertEquals(PlaceGeometry.MultiLineString(listOf(PlaceGeometry.LineString(listOf(GeoPoint(49.05, 2.05), GeoPoint(49.06, 2.06), GeoPoint(49.07, 2.07))))), oise.geometry)
     }
 }

@@ -2,6 +2,7 @@ package com.rideak.shared.feature.territory
 
 import com.rideak.exploration.CellId
 import com.rideak.exploration.ExplorationRegion
+import com.rideak.exploration.Place
 import com.rideak.exploration.RegionPackCodec
 import com.rideak.shared.resources.Res
 import kotlinx.coroutines.sync.Mutex
@@ -10,17 +11,21 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 /** Where region packs come from: bundled today, downloaded later (docs/osm-data-strategy.md). */
 fun interface RegionSource {
-    suspend fun regions(): List<ExplorationRegion>
+    suspend fun packs(): List<RegionPackCodec.Pack>
 }
+
+suspend fun RegionSource.regions(): List<ExplorationRegion> = packs().map { it.region }
+
+suspend fun RegionSource.places(): List<Place> = packs().flatMap { it.places }
 
 /** Packs shipped in `composeResources/files/regions`, decoded once. */
 class BundledRegions(private val files: List<String> = listOf("files/regions/cergy.region")) : RegionSource {
     private val mutex = Mutex()
-    private var cache: List<ExplorationRegion>? = null
+    private var cache: List<RegionPackCodec.Pack>? = null
 
     @OptIn(ExperimentalResourceApi::class)
-    override suspend fun regions(): List<ExplorationRegion> = mutex.withLock {
-        cache ?: files.map { RegionPackCodec.decode(Res.readBytes(it).decodeToString()).region }.also { cache = it }
+    override suspend fun packs(): List<RegionPackCodec.Pack> = mutex.withLock {
+        cache ?: files.map { RegionPackCodec.decode(Res.readBytes(it).decodeToString()) }.also { cache = it }
     }
 }
 

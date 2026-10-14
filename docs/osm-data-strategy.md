@@ -1,7 +1,7 @@
 # Stratégie de données OpenStreetMap
 
-Premier pack : **Cergy** (`shared/src/commonMain/composeResources/files/regions/cergy.region`, 6 Ko,
-391 cellules praticables). C'est une base de données dérivée d'OSM : voir la section Licence avant toute publication.
+Premier pack : **Cergy** (`shared/src/commonMain/composeResources/files/regions/cergy.region`, 28 Ko,
+391 cellules praticables, 47 lieux). C'est une base de données dérivée d'OSM : voir la section Licence avant toute publication.
 
 ## Usages prévus
 
@@ -33,9 +33,11 @@ Backend géospatial (PostGIS) seulement si les packs deviennent insuffisants
 
 ```
 Overpass (une requête, depuis la machine de dev)
-   → ./gradlew :tools:regionpack:run --args="cergy.json shared/…/regions/cergy.region"
+   → ./gradlew :tools:regionpack:run --args="cergy.json shared/…/regions/cergy.region cergy_places.json"
         assemble la frontière (relation admin), simplifie (Douglas–Peucker 15 m),
-        filtre les voies praticables, échantillonne tous les 10 m → cellules dans la frontière
+        filtre les voies praticables, échantillonne tous les 10 m → cellules dans la frontière ;
+        lieux : catégorie d'après les tags, géométrie simplifiée (8 m), gardés s'ils touchent la frontière,
+        éléments de même nom et catégorie fusionnés (une rivière en plusieurs ways = un lieu)
    → pack texte embarqué dans l'app (RegionPackCodec, :core:exploration)
 ```
 
@@ -47,6 +49,24 @@ area["ref:INSEE"="95127"]["boundary"="administrative"]->.a;
 rel["ref:INSEE"="95127"]["boundary"="administrative"];
 out geom;
 way(area.a)["highway"~"^(cycleway|path|track|living_street|residential|unclassified|tertiary|secondary|primary|service|pedestrian|footway|bridleway)$"];
+out geom;
+```
+
+Requête des lieux (rectangle autour de la commune : les requêtes par `area` expiraient sur les serveurs publics ;
+l'outil ne garde que ce qui touche la frontière) :
+
+```
+[out:json][timeout:90][bbox:49.0160,1.9960,49.0590,2.0960];
+(
+  nwr["leisure"="park"]["name"];
+  nwr["landuse"="forest"]["name"];
+  nwr["natural"="wood"]["name"];
+  nwr["natural"="water"]["name"];
+  way["waterway"="river"]["name"];
+  node["tourism"="viewpoint"];
+  nwr["historic"~"^(monument|memorial|castle|church|manor)$"]["name"];
+  nwr["tourism"~"^(attraction|artwork)$"]["name"];
+);
 out geom;
 ```
 

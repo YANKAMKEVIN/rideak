@@ -25,6 +25,16 @@ import com.rideak.shared.di.DeveloperSettings
 import com.rideak.shared.feature.home.HomeViewModel
 import com.rideak.shared.feature.profile.ProfileViewModel
 import com.rideak.shared.feature.rides.RidesViewModel
+import com.rideak.shared.feature.places.PlacesViewModel
+import com.rideak.shared.feature.places.NewPlaces
+import com.rideak.shared.feature.places.PlaceSection
+import com.rideak.shared.feature.places.PlacesContent
+import com.rideak.shared.feature.places.PlacesUiState
+import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.Place
+import com.rideak.exploration.PlaceCategory
+import com.rideak.exploration.PlaceGeometry
+import com.rideak.exploration.PlaceId
 import com.rideak.shared.feature.territory.RegionSource
 import com.rideak.shared.feature.territory.TerritoryProgress
 import com.rideak.shared.designsystem.components.TerritoryCard
@@ -53,6 +63,7 @@ class RideakUiTest {
                     single { AppInfo(isDebug = true) }
                     single { DeveloperSettings() }
                     single<RegionSource> { RegionSource { emptyList() } }
+                    viewModelOf(::PlacesViewModel)
                     viewModelOf(::HomeViewModel)
                     viewModelOf(::RidesViewModel)
                     viewModelOf(::ProfileViewModel)
@@ -100,5 +111,29 @@ class RideakUiTest {
     fun territoryCardShowsTheRealShareOfARegion() = runComposeUiTest {
         setContent { RideakTheme { TerritoryCard(exploredCells = 60, territory = TerritoryProgress("Cergy", 47, 391)) } }
         onNodeWithContentDescription("Mon territoire, Cergy explorée à 12 %, 47 / 391 zones praticables").assertIsDisplayed()
+    }
+
+    private val oise = Place(PlaceId("way/1"), "L'Oise", PlaceCategory.RIVER, PlaceGeometry.Point(GeoPoint(49.0, 2.0)))
+    private val parc = Place(PlaceId("way/2"), "Parc François-Mitterrand", PlaceCategory.PARK, PlaceGeometry.Point(GeoPoint(49.0, 2.0)))
+
+    @Test
+    fun newPlacesAreAnnouncedAtTheEndOfARide() = runComposeUiTest {
+        setContent { RideakTheme { NewPlaces(listOf(oise, parc)) } }
+        onNodeWithText("2 NOUVEAUX ENDROITS !").assertIsDisplayed()
+        onNodeWithContentDescription("Rivière : L'Oise").assertIsDisplayed()
+        onNodeWithContentDescription("Parc : Parc François-Mitterrand").assertIsDisplayed()
+    }
+
+    @Test
+    fun placesScreenShowsDiscoveredNamesAndHidesTheRest() = runComposeUiTest {
+        val state = PlacesUiState(
+            loading = false,
+            sections = listOf(PlaceSection(PlaceCategory.PARK, listOf(parc), hidden = 3), PlaceSection(PlaceCategory.RIVER, emptyList(), hidden = 1)),
+        )
+        setContent { RideakTheme { PlacesContent(state) } }
+        onNodeWithText("1 / 5 lieux découverts").assertIsDisplayed()
+        onNodeWithContentDescription("Parc : Parc François-Mitterrand").assertIsDisplayed()
+        onNodeWithText("3 lieux encore cachés").assertIsDisplayed()
+        onNodeWithText("1 lieu encore caché").assertIsDisplayed()
     }
 }

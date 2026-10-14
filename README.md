@@ -72,7 +72,7 @@ tests iOS (domaine + UI Compose) sur macOS, sur `main` et à la demande seulemen
 - **J1** — enregistrement d'une sortie : GPS Android/iOS, recorder testable, persistance, Ride mode ✅
 - Spike carte stylisée MapLibre
 - Moteur d'exploration : interpolation, dérive, filtres ✅ ; zones dévoilées par sortie ✅ ; première région (Cergy) ✅
-- Découverte de lieux, favoris, progression, puis gamification
+- Découverte de lieux ✅ (47 lieux à Cergy, onglet Lieux) ; favoris, progression, puis gamification
 
 ## Technical Decisions
 

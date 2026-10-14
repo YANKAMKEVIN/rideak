@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rideak.data.RideRepository
 import com.rideak.exploration.ExplorationEngine
+import com.rideak.exploration.Place
+import com.rideak.exploration.PlaceDiscoverer
+import com.rideak.shared.feature.territory.RegionSource
+import com.rideak.shared.feature.territory.places
 import com.rideak.exploration.TrackPoint
 import com.rideak.exploration.RideId
 import com.rideak.ride.ProfilePoint
@@ -29,9 +33,11 @@ data class RideSummaryUiState(
     val cellsTraversed: Int = 0,
     /** Cells this ride touched that no earlier ride had: the "world revealing itself". */
     val cellsRevealed: Int = 0,
+    /** Real places (parks, rivers, monuments…) this ride discovered for the first time. */
+    val newPlaces: List<Place> = emptyList(),
 )
 
-class RideSummaryViewModel(rideId: String, repository: RideRepository) : ViewModel() {
+class RideSummaryViewModel(rideId: String, repository: RideRepository, regions: RegionSource) : ViewModel() {
     private val _state = MutableStateFlow(RideSummaryUiState())
     val state: StateFlow<RideSummaryUiState> = _state
 
@@ -42,6 +48,7 @@ class RideSummaryViewModel(rideId: String, repository: RideRepository) : ViewMod
             val track = repository.track(id)
             val spots = repository.spots(id)
             val before = ride?.let { repository.finishedSegmentsBefore(it.startedAtEpochMillis) }.orEmpty()
+            val places = regions.places()
             _state.value = withContext(Dispatchers.Default) {
                 val engine = ExplorationEngine.standard()
                 RideSummaryUiState(
@@ -53,6 +60,8 @@ class RideSummaryViewModel(rideId: String, repository: RideRepository) : ViewMod
                     profile = elevationProfile(track),
                     cellsTraversed = engine.cellsForSegments(track).size,
                     cellsRevealed = engine.revealedBy(track, before).size,
+                    newPlaces = PlaceDiscoverer().newlyDiscovered(places, engine.pathsFor(track), engine.pathsFor(before))
+                        .let { ids -> places.filter { it.id in ids } },
                 )
             }
         }

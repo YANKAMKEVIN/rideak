@@ -65,4 +65,20 @@ class RegionTest {
     fun packRejectsForeignText() {
         assertFailsWith<IllegalArgumentException> { RegionPackCodec.decode("{\"type\":\"FeatureCollection\"}") }
     }
+
+    @Test
+    fun packCarriesPlacesOfEveryShape() {
+        val region = ExplorationRegion(RegionId("r"), "Cergy", listOf(square), grid.id, setOf(CellId("tile17/1/2")))
+        val line = PlaceGeometry.LineString(listOf(GeoPoint(49.03, 2.07), GeoPoint(49.04, 2.08)))
+        val places = listOf(
+            Place(PlaceId("node/1"), "Axe majeur", PlaceCategory.LANDMARK, PlaceGeometry.Point(GeoPoint(49.0412, 2.0405))),
+            Place(PlaceId("way/2"), "L'Oise", PlaceCategory.RIVER, line),
+            Place(PlaceId("rel/3"), "Bras de l'Oise", PlaceCategory.RIVER, PlaceGeometry.MultiLineString(listOf(line, line))),
+            Place(PlaceId("way/4"), "Parc François-Mitterrand", PlaceCategory.PARK, square),
+            Place(PlaceId("rel/5"), "Bois de Cergy", PlaceCategory.FOREST, PlaceGeometry.MultiPolygon(listOf(square, square.copy(holes = emptyList())))),
+        )
+        val pack = RegionPackCodec.decode(RegionPackCodec.encode(region, "© OSM", places))
+        assertEquals(places, pack.places)
+        assertEquals(region, pack.region)
+    }
 }

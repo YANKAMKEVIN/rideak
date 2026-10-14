@@ -10,8 +10,9 @@ enum class PlaceCategory { PARK, FOREST, LAKE, RIVER, VIEWPOINT, MONUMENT, LANDM
 /**
  * Shape of a real place. Discovery rules depend on it (future engine):
  * - [Point]: discovered when the ride passes close enough (monument, viewpoint);
- * - [LineString]: discovered when the ride crosses or follows it closely (river);
- * - [Polygon]: discovered when the ride actually enters the area (park, forest).
+ * - [LineString] / [MultiLineString]: discovered when the ride crosses or follows it closely (river);
+ * - [Polygon] / [MultiPolygon]: discovered when the ride actually enters the area (park, forest),
+ *   or rides along its shore for water you cannot ride into (lake).
  */
 sealed interface PlaceGeometry {
     data class Point(val position: GeoPoint) : PlaceGeometry
@@ -19,6 +20,13 @@ sealed interface PlaceGeometry {
     data class LineString(val points: List<GeoPoint>) : PlaceGeometry {
         init {
             require(points.size >= 2) { "a line needs at least 2 points" }
+        }
+    }
+
+    /** One place drawn as several lines (a river split into many OSM ways). */
+    data class MultiLineString(val lines: List<LineString>) : PlaceGeometry {
+        init {
+            require(lines.isNotEmpty()) { "a multi-line needs at least one line" }
         }
     }
 
@@ -30,6 +38,13 @@ sealed interface PlaceGeometry {
         init {
             require(exterior.size >= 3) { "a polygon needs at least 3 points" }
             require(holes.all { it.size >= 3 }) { "every hole needs at least 3 points" }
+        }
+    }
+
+    /** One place made of several areas (a park split in two by a road). */
+    data class MultiPolygon(val polygons: List<Polygon>) : PlaceGeometry {
+        init {
+            require(polygons.isNotEmpty()) { "a multi-polygon needs at least one polygon" }
         }
     }
 }
