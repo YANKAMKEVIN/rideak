@@ -2,21 +2,24 @@ package com.rideak.shared.feature.map
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.rideak.data.RideRepository
 import com.rideak.data.PrivacyZoneRepository
+import com.rideak.data.RideRepository
 import com.rideak.exploration.CellId
 import com.rideak.exploration.ExplorationEngine
+import com.rideak.exploration.ExplorationRegion
+import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.PlaceCategory
+import com.rideak.exploration.PlaceDiscoverer
 import com.rideak.exploration.PrivacyMask
 import com.rideak.exploration.PrivacyZone
-import com.rideak.exploration.GeoPoint
 import com.rideak.exploration.SlippyTileGrid
 import com.rideak.exploration.TrackPoint
 import com.rideak.shared.di.DeveloperSettings
 import com.rideak.shared.feature.territory.RegionSource
 import com.rideak.shared.feature.territory.TerritoryProgress
-import com.rideak.shared.feature.territory.regions
 import com.rideak.shared.feature.territory.territoryOf
-import com.rideak.exploration.ExplorationRegion
+import kotlin.math.ln
+import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,15 +29,19 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.ln
-import kotlin.math.max
 
 data class MapCamera(val latitude: Double, val longitude: Double, val zoom: Double)
+
+/** "found / total" for the category carousel. */
+data class Counter(val found: Int, val total: Int)
 
 data class WorldMapUiState(
     val loading: Boolean = true,
     val exploredCells: Int = 0,
     val territory: TerritoryProgress? = null,
+    /** Cities (regions) explored, and places discovered per category, for the carousel. */
+    val cities: Counter = Counter(0, 0),
+    val places: Map<PlaceCategory, Counter> = emptyMap(),
     /** Outline of every known region, so the rider sees the territory to conquer. */
     val regionOutlines: String = GeoJson.lines(emptyList()),
     val tracks: String = GeoJson.lines(emptyList()),
@@ -63,6 +70,7 @@ class MapViewModel(
         val spots: List<GeoPoint>,
         val explored: Set<CellId>,
         val regions: List<ExplorationRegion>,
+        val places: Map<PlaceCategory, Counter>,
     )
 
     private val grid = SlippyTileGrid()
@@ -79,13 +87,17 @@ class MapViewModel(
             val track = repository.finishedSegments() +
                 if (developer.mapStressTest.value) listOf(stressTrack()) else emptyList()
             val spots = repository.finishedSpots().map { it.position }
-            val regions = regions.regions()
+            val packs = regions.packs()
             ridden.value = withContext(Dispatchers.Default) {
+                val engine = ExplorationEngine.standard(grid)
+                val places = packs.flatMap { it.places }
+                val found = PlaceDiscoverer().discovered(places, engine.pathsFor(track))
                 Ridden(
                     segments = track.map { segment -> segment.map { it.position } },
                     spots = spots,
-                    explored = ExplorationEngine.standard(grid).cellsForSegments(track),
-                    regions = regions,
+                    explored = engine.cellsForSegments(track),
+                    regions = packs.map { it.region },
+                    places = places.groupBy { it.category }.mapValues { (_, list) -> Counter(list.count { it.id in found }, list.size) },
                 )
             }
         }
@@ -104,6 +116,8 @@ class MapViewModel(
             loading = false,
             exploredCells = ridden.explored.size,
             territory = territoryOf(ridden.regions, ridden.explored),
+            cities = Counter(ridden.regions.count { it.progress(ridden.explored).exploredRideableCells > 0 }, ridden.regions.size),
+            places = ridden.places,
             regionOutlines = GeoJson.lines(
                 ridden.regions.flatMap { region -> region.boundary.flatMap { listOf(it.exterior) + it.holes } }.map { it + it.first() },
             ),

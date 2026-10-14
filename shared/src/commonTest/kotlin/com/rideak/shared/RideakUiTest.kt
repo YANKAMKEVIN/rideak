@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.rideak.shared.designsystem.RideakTheme
@@ -37,6 +38,13 @@ import com.rideak.shared.feature.places.PlaceSection
 import com.rideak.shared.feature.places.PlacesContent
 import com.rideak.shared.feature.places.PlacesUiState
 import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.Badge
+import com.rideak.exploration.PlayerStats
+import com.rideak.exploration.Progression
+import com.rideak.shared.feature.progress.BadgeGrid
+import com.rideak.shared.feature.progress.LevelCard
+import com.rideak.shared.feature.progress.RideRewards
+import androidx.compose.foundation.layout.Column
 import com.rideak.exploration.Place
 import com.rideak.exploration.PlaceCategory
 import com.rideak.exploration.PlaceGeometry
@@ -100,7 +108,8 @@ class RideakUiTest {
         onNodeWithText("Sorties").performClick()
         onNodeWithText("Aucune sortie pour l'instant. Pars à l'aventure depuis l'accueil !").assertIsDisplayed()
         onNodeWithText("Profil").performClick()
-        onNodeWithText("Sortie simulée").assertIsDisplayed()
+        onNodeWithContentDescription("Niveau 1, Novice, 0 XP, prochain niveau à 100 XP").assertIsDisplayed()
+        onNodeWithText("Sortie simulée").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -156,5 +165,30 @@ class RideakUiTest {
         state = PrivacyUiState(zones = listOf(PrivacyZone("z", "Domicile", home, 437.0)))
         onNodeWithText("Domicile · 440 m").assertIsDisplayed()
         onNodeWithText("Retirer").assertHasClickAction()
+    }
+
+    @Test
+    fun profileShowsLevelAndBadges() = runComposeUiTest {
+        val stats = PlayerStats(rides = 2, distanceMeters = 12_000.0, exploredCells = 8)
+        setContent {
+            RideakTheme {
+                Column {
+                    LevelCard(Progression.level(Progression.xp(stats)))
+                    BadgeGrid(stats)
+                }
+            }
+        }
+        // 8 × 10 + 2 × 20 + 12 × 5 = 180 XP: level 2.
+        onNodeWithContentDescription("Niveau 2, Éclaireur, 180 XP, prochain niveau à 300 XP").assertIsDisplayed()
+        onNodeWithText("2 / 6").assertIsDisplayed()
+        onNodeWithContentDescription("Badge 10 km, débloqué").assertIsDisplayed()
+        onNodeWithContentDescription("Badge Explorateur, verrouillé, Explore 100 zones, 8 sur 100").assertIsDisplayed()
+    }
+
+    @Test
+    fun rideRewardsAnnounceXpAndBadges() = runComposeUiTest {
+        setContent { RideakTheme { RideRewards(xp = 140, badges = listOf(Badge.FIRST_RIDE)) } }
+        onNodeWithText("+140 XP").assertIsDisplayed()
+        onNodeWithContentDescription("Badge débloqué : 1re sortie").assertIsDisplayed()
     }
 }

@@ -32,12 +32,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import com.rideak.exploration.PlaceCategory
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -76,15 +78,20 @@ import org.maplibre.spatialk.geojson.Position
 
 private enum class MapTab(val label: String) { Exploration("Exploration"), Favorites("Lieux favoris"), Rides("Mes trajets") }
 
-private data class CategoryCard(val label: String, val image: DrawableResource, val available: Boolean)
+/** One carousel card: an illustration and what has been found in that category. */
+private data class CategoryCard(val label: String, val image: DrawableResource, val count: (WorldMapUiState) -> String)
 
-// Per-category exploration needs place data (OSM): only "Tout" is computed for now, the others say so.
+private fun WorldMapUiState.placesOf(vararg categories: PlaceCategory): String {
+    val counters = categories.mapNotNull { places[it] }
+    return "${counters.sumOf { it.found }} / ${counters.sumOf { it.total }}"
+}
+
 private val categories = listOf(
-    CategoryCard("Tout", Res.drawable.card_all, available = true),
-    CategoryCard("Villes", Res.drawable.card_cities, available = false),
-    CategoryCard("Parcs", Res.drawable.card_parks, available = false),
-    CategoryCard("Rivières", Res.drawable.card_rivers, available = false),
-    CategoryCard("Forêts", Res.drawable.card_forests, available = false),
+    CategoryCard("Tout", Res.drawable.card_all) { "${it.exploredCells} zones" },
+    CategoryCard("Villes", Res.drawable.card_cities) { "${it.cities.found} / ${it.cities.total}" },
+    CategoryCard("Parcs", Res.drawable.card_parks) { it.placesOf(PlaceCategory.PARK) },
+    CategoryCard("Rivières", Res.drawable.card_rivers) { it.placesOf(PlaceCategory.RIVER, PlaceCategory.LAKE) },
+    CategoryCard("Forêts", Res.drawable.card_forests) { it.placesOf(PlaceCategory.FOREST) },
 )
 
 /** "Ma carte", laid out after mockup "6. MA CARTE". */
@@ -120,7 +127,7 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
                 }
             }
         }
-        CategoryCarousel(state.exploredCells)
+        CategoryCarousel(state)
     }
 }
 
@@ -215,22 +222,20 @@ private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
 }
 
 @Composable
-private fun CategoryCarousel(exploredCells: Int) {
-    var selected by rememberSaveable { mutableIntStateOf(0) }
+private fun CategoryCarousel(state: WorldMapUiState) {
+    // A strip of counters, not a filter: filtering the map by category comes later.
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         items(categories.size) { index ->
             val card = categories[index]
-            val isSelected = index == selected
+            val count = card.count(state)
             val colors = RideakTheme.colors
             Column(
                 Modifier.width(76.dp)
                     .clip(RideakTheme.shapes.medium)
-                    .border(2.dp, if (isSelected) colors.reward else Color.Transparent, RideakTheme.shapes.medium)
-                    .selectable(selected = isSelected, enabled = card.available, role = Role.Tab, onClick = { selected = index })
-                    .alpha(if (card.available) 1f else 0.6f),
+                    .clearAndSetSemantics { contentDescription = "${card.label} : $count" },
             ) {
                 Box(Modifier.height(78.dp).fillMaxWidth()) {
                     Image(painterResource(card.image), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -241,12 +246,7 @@ private fun CategoryCarousel(exploredCells: Int) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(card.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = colors.textPrimary, maxLines = 1)
-                    Text(
-                        if (card.available) "$exploredCells zones" else "Bientôt",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.textSecondary,
-                        maxLines = 1,
-                    )
+                    Text(count, style = MaterialTheme.typography.labelSmall, color = colors.textSecondary, maxLines = 1)
                 }
             }
         }

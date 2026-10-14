@@ -5,17 +5,26 @@ import androidx.lifecycle.viewModelScope
 import com.rideak.data.PrivacyZoneRepository
 import com.rideak.data.RideRepository
 import com.rideak.data.location.LocationSourceSelector
+import com.rideak.exploration.Level
+import com.rideak.exploration.PlayerStats
 import com.rideak.exploration.PrivacySuggestion
 import com.rideak.exploration.PrivacyZone
+import com.rideak.exploration.Progression
 import com.rideak.exploration.suggestPrivacySpots
 import com.rideak.shared.di.AppInfo
 import com.rideak.shared.di.DeveloperSettings
+import com.rideak.shared.feature.progress.playerStats
+import com.rideak.shared.feature.territory.RegionSource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+data class ProgressUiState(val stats: PlayerStats = PlayerStats(), val level: Level = Progression.level(0))
 
 data class PrivacyUiState(
     val zones: List<PrivacyZone> = emptyList(),
@@ -29,6 +38,7 @@ class ProfileViewModel(
     private val developer: DeveloperSettings,
     rides: RideRepository,
     private val privacy: PrivacyZoneRepository,
+    regions: RegionSource,
 ) : ViewModel() {
     val showDeveloperTools = appInfo.isDebug
     val simulation: StateFlow<Boolean> = selector.useSimulation
@@ -37,6 +47,16 @@ class ProfileViewModel(
 
     val mapStressTest: StateFlow<Boolean> = developer.mapStressTest
     fun setMapStressTest(enabled: Boolean) { developer.mapStressTest.value = enabled }
+
+    /** Level and badges, derived from every finished ride (nothing stored). */
+    val progressState: StateFlow<ProgressUiState> = rides.observeFinishedRides().map { finished ->
+        val segments = rides.finishedSegments()
+        val packs = regions.packs()
+        withContext(Dispatchers.Default) {
+            val stats = playerStats(finished, segments, packs.map { it.region }, packs.flatMap { it.places })
+            ProgressUiState(stats, Progression.level(Progression.xp(stats)))
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressUiState())
 
     val privacyState: StateFlow<PrivacyUiState> = combine(
         rides.observeFinishedRides().map { rides.finishedEndpoints() },

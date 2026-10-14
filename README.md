@@ -74,7 +74,8 @@ tests iOS (domaine + UI Compose) sur macOS, sur `main` et à la demande seulemen
 - Moteur d'exploration : interpolation, dérive, filtres ✅ ; zones dévoilées par sortie ✅ ; première région (Cergy) ✅
 - Découverte de lieux ✅ (47 lieux à Cergy, onglet Lieux)
 - Zones privées ✅ (suggestions, centre décalé, mode partage)
-- Progression, puis gamification
+- Progression ✅ (XP, niveaux, 6 badges, compteurs par catégorie)
+- Ensuite : filtres de carte par catégorie, onboarding, préparation de la publication
 
 ## Technical Decisions
 

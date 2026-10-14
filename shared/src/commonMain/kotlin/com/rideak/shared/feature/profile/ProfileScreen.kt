@@ -26,6 +26,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rideak.shared.designsystem.RideakTheme
+import com.rideak.shared.feature.progress.BadgeGrid
+import com.rideak.shared.feature.progress.LevelCard
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -33,13 +35,15 @@ fun ProfileScreen(viewModel: ProfileViewModel = koinViewModel()) {
     val simulation by viewModel.simulation.collectAsStateWithLifecycle()
     val stress by viewModel.mapStressTest.collectAsStateWithLifecycle()
     val privacy by viewModel.privacyState.collectAsStateWithLifecycle()
+    val progress by viewModel.progressState.collectAsStateWithLifecycle()
     val c = RideakTheme.colors
     Column(
         Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).verticalScroll(rememberScrollState()).padding(RideakTheme.spacing.l),
         verticalArrangement = Arrangement.spacedBy(RideakTheme.spacing.m),
     ) {
         Text("Profil", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = c.textPrimary, modifier = Modifier.semantics { heading() })
-        Text("Ta progression arrive bientôt.", style = MaterialTheme.typography.bodyLarge, color = c.textSecondary)
+        LevelCard(progress.level)
+        BadgeGrid(progress.stats)
 
         PrivacySection(privacy, onProtect = viewModel::protect, onRemove = viewModel::remove)
 

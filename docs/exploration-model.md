@@ -73,6 +73,18 @@ Rien n'est stocké : « nouveaux lieux » d'une sortie = découverts par elle �
 terminées commencées avant (`newlyDiscovered`). Affichés en fin de sortie (« NOUVEL ENDROIT ! ») et dans
 l'onglet Lieux (noms des lieux découverts, nombre de lieux encore cachés par catégorie).
 
+## Progression (V1)
+
+`Progression` et `Badge` (`:core:exploration`) partent de `PlayerStats` (sorties, distance, cellules explorées,
+lieux découverts par catégorie, régions entamées), elles-mêmes dérivées des traces : rien n'est stocké, changer
+une règle rejoue l'historique. **La vitesse n'apparaît nulle part.**
+
+- XP : 10 par cellule explorée, 50 par lieu découvert, 20 par sortie, 5 par km.
+- Niveaux : le niveau n commence à 100 × n(n−1)/2 XP (0, 100, 300, 600, 1 000…), titres de « Novice » à « Légende ».
+- Badges (illustrations `badge_*`) : 1re sortie, 10 km, Premier parc, 5 villes (régions entamées), 100 km,
+  Explorateur (100 cellules).
+- Fin de sortie : XP gagnée et badges débloqués = stats « jusqu'à cette sortie » − stats « avant elle ».
+
 Reste à faire :
 
 - **TRAVERSED → EXPLORED** : règle à définir (nombre de passages, densité de voisins, temps passé).

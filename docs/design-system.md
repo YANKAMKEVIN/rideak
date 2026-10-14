@@ -50,7 +50,8 @@ Licences SIL OFL dans `docs/licenses/`. Bangers n'a que des capitales : c'est vo
 | `RideakBottomBar` | ✅ libellés toujours visibles |
 | `RideMap` (feature/map) | ✅ carte MapLibre d'une sortie : zones, tracé lumineux, spots, position en direct (suivi) |
 | Icônes `RideakIcons` | ✅ parc, rivière, ville, colline, vélo, carte, feuille, chrono, minuteur, compteur, montagne, éclair, cœur, pause/lecture/stop |
-| `RideStatCard`, `LocationChip`, `DiscoveryCard`, `MangaBanner`, `MapMarker`, `AchievementBadge` | prévus, non implémentés |
+| `RevealBanner`, `NewPlaces` / `PlaceRow`, `LevelCard`, `BadgeGrid`, `RideRewards` | ✅ récompenses en voix manga (Bangers), sémantique regroupée pour les lecteurs d'écran |
+| `RideStatCard`, `LocationChip`, `MapMarker` | prévus, non implémentés |
 
 Les icônes Material sont temporaires (le set illustré RIDEAK les remplacera).
 
