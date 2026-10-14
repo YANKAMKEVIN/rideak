@@ -10,6 +10,8 @@ import com.rideak.shared.feature.profile.ProfileViewModel
 import com.rideak.shared.feature.ride.RideViewModel
 import com.rideak.shared.feature.rides.RidesViewModel
 import com.rideak.shared.feature.summary.RideSummaryViewModel
+import com.rideak.shared.feature.territory.BundledRegions
+import com.rideak.shared.feature.territory.RegionSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.core.context.startKoin
@@ -29,6 +31,7 @@ class DeveloperSettings {
 
 private val uiModule = module {
     single { DeveloperSettings() }
+    single<RegionSource> { BundledRegions() }
     viewModelOf(::HomeViewModel)
     viewModelOf(::MapViewModel)
     viewModelOf(::RideViewModel)

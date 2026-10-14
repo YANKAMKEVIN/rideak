@@ -77,7 +77,7 @@ fun HomeScreen(onRide: () -> Unit, viewModel: HomeViewModel = koinViewModel()) {
         ) {
             SearchField()
             CategoryRow()
-            TerritoryCard(state.exploredCells)
+            TerritoryCard(state.exploredCells, territory = state.territory)
             StatsRow(state)
             val active = state.activeRide
             AdventureButton(

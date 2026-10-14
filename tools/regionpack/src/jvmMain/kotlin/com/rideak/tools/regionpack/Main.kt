@@ -1,0 +1,129 @@
+package com.rideak.tools.regionpack
+
+import com.rideak.exploration.ExplorationRegion
+import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.PlaceGeometry
+import com.rideak.exploration.RegionId
+import com.rideak.exploration.RegionPackCodec
+import com.rideak.exploration.SlippyTileGrid
+import com.rideak.exploration.contains
+import com.rideak.exploration.rideableCells
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import java.io.File
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.hypot
+
+/**
+ * Input: an Overpass `out geom` response with one administrative boundary relation and the
+ * highways inside it (query in docs/osm-data-strategy.md). Output: a region pack.
+ */
+fun main(args: Array<String>) {
+    require(args.size == 2) { "usage: <overpass.json> <out.region>" }
+    val elements = Json.parseToJsonElement(File(args[0]).readText()).jsonObject.getValue("elements").jsonArray.map { it.jsonObject }
+
+    val relation = elements.single { it.string("type") == "relation" }
+    val boundary = boundaryOf(relation).map { it.simplified(toleranceMeters = 15.0) }
+    val ways = elements
+        .filter { it.string("type") == "way" && isRideable(it.tags()) }
+        .map { way -> way.getValue("geometry").jsonArray.map { it.jsonObject.point() } }
+
+    val grid = SlippyTileGrid()
+    val region = ExplorationRegion(
+        id = RegionId("osm-relation-${relation.getValue("id").jsonPrimitive.long}"),
+        name = relation.tags().getValue("name"),
+        boundary = boundary,
+        gridId = grid.id,
+        rideableCells = rideableCells(boundary, ways, grid),
+    )
+    File(args[1]).writeText(RegionPackCodec.encode(region, "© OpenStreetMap contributors (ODbL)"))
+    println("${region.name}: ${boundary.size} polygon(s), ${boundary.sumOf { it.exterior.size }} boundary points, " +
+        "${ways.size} rideable ways, ${region.rideableCells.size} rideable cells")
+}
+
+private val roads = setOf(
+    "cycleway", "path", "track", "living_street", "residential", "unclassified",
+    "tertiary", "secondary", "primary", "service",
+)
+private val bikeOnlyIfAllowed = setOf("footway", "pedestrian", "bridleway", "steps")
+private val bikeAllowed = setOf("yes", "designated", "permissive")
+
+/** Rideable by bike, from OSM tags. Motorways and trunks are never in [roads]. */
+fun isRideable(tags: Map<String, String>): Boolean {
+    val highway = tags["highway"] ?: return false
+    val bicycle = tags["bicycle"]
+    if (bicycle == "no" || bicycle == "dismount") return false
+    if (bicycle in bikeAllowed) return highway in roads || highway in bikeOnlyIfAllowed
+    if (tags["access"] in setOf("no", "private")) return false
+    if (highway == "service" && tags["service"] == "driveway") return false
+    return highway in roads
+}
+
+/** Outer rings joined from the relation's member ways, each with the inner rings it contains. */
+fun boundaryOf(relation: JsonObject): List<PlaceGeometry.Polygon> {
+    val members = relation.getValue("members").jsonArray.map { it.jsonObject }.filter { it.string("type") == "way" }
+    fun rings(role: String) = joinRings(
+        members.filter { it.string("role") == role }.map { m -> m.getValue("geometry").jsonArray.map { it.jsonObject.point() } },
+    )
+    val inners = rings("inner")
+    return rings("outer").map { outer ->
+        val polygon = PlaceGeometry.Polygon(outer)
+        polygon.copy(holes = inners.filter { it.first() in polygon })
+    }
+}
+
+/** Joins way fragments end to end into closed rings (first point not repeated). */
+fun joinRings(fragments: List<List<GeoPoint>>): List<List<GeoPoint>> {
+    val left = fragments.filter { it.size >= 2 }.toMutableList()
+    val rings = mutableListOf<List<GeoPoint>>()
+    while (left.isNotEmpty()) {
+        val ring = left.removeAt(0).toMutableList()
+        while (ring.first() != ring.last()) {
+            val i = left.indexOfFirst { it.first() == ring.last() || it.last() == ring.last() }
+            check(i >= 0) { "boundary ring does not close" }
+            val next = left.removeAt(i)
+            ring += (if (next.first() == ring.last()) next else next.reversed()).drop(1)
+        }
+        rings += ring.dropLast(1)
+    }
+    return rings
+}
+
+/** Douglas–Peucker on a local equirectangular projection; keeps at least a triangle. */
+fun PlaceGeometry.Polygon.simplified(toleranceMeters: Double): PlaceGeometry.Polygon {
+    fun simplify(ring: List<GeoPoint>): List<GeoPoint> {
+        val closed = ring + ring.first()
+        val kept = BooleanArray(closed.size).also { it[0] = true; it[it.lastIndex] = true }
+        val metersPerDegLat = 111_195.0
+        val metersPerDegLon = metersPerDegLat * cos(ring.first().latitude * PI / 180)
+        fun dist(p: GeoPoint, a: GeoPoint, b: GeoPoint): Double {
+            val px = (p.longitude - a.longitude) * metersPerDegLon; val py = (p.latitude - a.latitude) * metersPerDegLat
+            val bx = (b.longitude - a.longitude) * metersPerDegLon; val by = (b.latitude - a.latitude) * metersPerDegLat
+            val len2 = bx * bx + by * by
+            val t = if (len2 == 0.0) 0.0 else ((px * bx + py * by) / len2).coerceIn(0.0, 1.0)
+            return hypot(px - t * bx, py - t * by)
+        }
+        fun recurse(from: Int, to: Int) {
+            var worst = -1; var worstDist = toleranceMeters
+            for (i in from + 1 until to) {
+                val d = dist(closed[i], closed[from], closed[to])
+                if (d > worstDist) { worst = i; worstDist = d }
+            }
+            if (worst >= 0) { kept[worst] = true; recurse(from, worst); recurse(worst, to) }
+        }
+        recurse(0, closed.lastIndex)
+        val result = closed.filterIndexed { i, _ -> kept[i] }.dropLast(1)
+        return if (result.size >= 3) result else ring
+    }
+    return PlaceGeometry.Polygon(simplify(exterior), holes.map(::simplify))
+}
+
+private fun JsonObject.string(key: String) = get(key)?.jsonPrimitive?.content
+private fun JsonObject.tags(): Map<String, String> = get("tags")?.jsonObject?.mapValues { it.value.jsonPrimitive.content }.orEmpty()
+private fun JsonObject.point() = GeoPoint(getValue("lat").jsonPrimitive.double, getValue("lon").jsonPrimitive.double)

@@ -24,6 +24,7 @@ Plus tard : MapLibre (voir `docs/maps-decision.md`).
 :core:data          Room, sources de localisation, enregistreur de sortie
 :shared             UI Compose Multiplatform : design system, navigation, écrans
 :androidApp         hôte Android (+ foreground service de sortie)
+:tools:regionpack   outil de dev : données OSM → pack région (cellules praticables)
 iosApp/             hôte iOS (Xcode)
 ```
 
@@ -70,7 +71,7 @@ tests iOS (domaine + UI Compose) sur macOS, sur `main` et à la demande seulemen
 - **J0** — fondations ✅
 - **J1** — enregistrement d'une sortie : GPS Android/iOS, recorder testable, persistance, Ride mode ✅
 - Spike carte stylisée MapLibre
-- Moteur d'exploration : interpolation, dérive, filtres ; premières régions précalculées
+- Moteur d'exploration : interpolation, dérive, filtres ✅ ; zones dévoilées par sortie ✅ ; première région (Cergy) ✅
 - Découverte de lieux, favoris, progression, puis gamification
 
 ## Technical Decisions

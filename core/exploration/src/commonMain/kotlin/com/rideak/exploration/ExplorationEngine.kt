@@ -1,7 +1,5 @@
 package com.rideak.exploration
 
-import kotlin.math.ceil
-
 /**
  * A validation / cleaning step applied to a whole track before cells are computed.
  * Track-level (not point-level) so rules can look at neighbours: GPS drift while
@@ -122,17 +120,7 @@ class ExplorationEngine(
         val meters = a.position.distanceTo(b.position)
         if (meters <= rule.stepMeters) return
         if (meters > rule.maxGapMeters || b.timestampEpochMillis - a.timestampEpochMillis > rule.maxGapMillis) return
-        // Linear in degrees: indistinguishable from the geodesic over a few hundred metres.
-        val steps = ceil(meters / rule.stepMeters).toInt()
-        for (k in 1 until steps) {
-            val f = k.toDouble() / steps
-            cells += grid.cellAt(
-                GeoPoint(
-                    a.position.latitude + (b.position.latitude - a.position.latitude) * f,
-                    a.position.longitude + (b.position.longitude - a.position.longitude) * f,
-                ),
-            )
-        }
+        samplesBetween(a.position, b.position, rule.stepMeters).mapTo(cells, grid::cellAt)
     }
 
     companion object {

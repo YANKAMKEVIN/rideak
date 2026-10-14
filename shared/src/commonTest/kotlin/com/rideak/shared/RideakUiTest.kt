@@ -25,6 +25,9 @@ import com.rideak.shared.di.DeveloperSettings
 import com.rideak.shared.feature.home.HomeViewModel
 import com.rideak.shared.feature.profile.ProfileViewModel
 import com.rideak.shared.feature.rides.RidesViewModel
+import com.rideak.shared.feature.territory.RegionSource
+import com.rideak.shared.feature.territory.TerritoryProgress
+import com.rideak.shared.designsystem.components.TerritoryCard
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.emptyFlow
 import org.koin.core.context.startKoin
@@ -49,6 +52,7 @@ class RideakUiTest {
                     single { RideRecorder(get(), { noGps }, MainScope(), { 0L }, { "id" }) }
                     single { AppInfo(isDebug = true) }
                     single { DeveloperSettings() }
+                    single<RegionSource> { RegionSource { emptyList() } }
                     viewModelOf(::HomeViewModel)
                     viewModelOf(::RidesViewModel)
                     viewModelOf(::ProfileViewModel)
@@ -90,5 +94,11 @@ class RideakUiTest {
         onNodeWithContentDescription("+1 zone dévoilée ! sur 30 traversées · ta carte s'agrandit").assertIsDisplayed()
         revealed = 0
         onNodeWithContentDescription("Terrain connu", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun territoryCardShowsTheRealShareOfARegion() = runComposeUiTest {
+        setContent { RideakTheme { TerritoryCard(exploredCells = 60, territory = TerritoryProgress("Cergy", 47, 391)) } }
+        onNodeWithContentDescription("Mon territoire, Cergy explorée à 12 %, 47 / 391 zones praticables").assertIsDisplayed()
     }
 }

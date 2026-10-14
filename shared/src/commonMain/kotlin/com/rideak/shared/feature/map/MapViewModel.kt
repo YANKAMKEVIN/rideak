@@ -8,6 +8,10 @@ import com.rideak.exploration.GeoPoint
 import com.rideak.exploration.SlippyTileGrid
 import com.rideak.exploration.TrackPoint
 import com.rideak.shared.di.DeveloperSettings
+import com.rideak.shared.feature.territory.RegionSource
+import com.rideak.shared.feature.territory.TerritoryProgress
+import com.rideak.shared.feature.territory.territoryOf
+import com.rideak.exploration.ExplorationRegion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +25,9 @@ data class MapCamera(val latitude: Double, val longitude: Double, val zoom: Doub
 data class WorldMapUiState(
     val loading: Boolean = true,
     val exploredCells: Int = 0,
+    val territory: TerritoryProgress? = null,
+    /** Outline of every known region, so the rider sees the territory to conquer. */
+    val regionOutlines: String = GeoJson.lines(emptyList()),
     val tracks: String = GeoJson.lines(emptyList()),
     val cells: String = GeoJson.squares(emptyList()),
     val fog: String = GeoJson.fog(emptyList()),
@@ -34,6 +41,7 @@ data class WorldMapUiState(
 class MapViewModel(
     private val repository: RideRepository,
     private val developer: DeveloperSettings,
+    private val regions: RegionSource,
 ) : ViewModel() {
     private val _state = MutableStateFlow(WorldMapUiState())
     val state: StateFlow<WorldMapUiState> = _state
@@ -43,18 +51,24 @@ class MapViewModel(
             val segments = repository.finishedSegments() +
                 if (developer.mapStressTest.value) listOf(stressTrack()) else emptyList()
             val spots = repository.finishedSpots().map { it.position }
-            _state.value = withContext(Dispatchers.Default) { build(segments, spots) }
+            val regions = regions.regions()
+            _state.value = withContext(Dispatchers.Default) { build(segments, spots, regions) }
         }
     }
 
-    private fun build(track: List<List<TrackPoint>>, spots: List<GeoPoint>): WorldMapUiState {
+    private fun build(track: List<List<TrackPoint>>, spots: List<GeoPoint>, regions: List<ExplorationRegion>): WorldMapUiState {
         val grid = SlippyTileGrid()
-        val cells = ExplorationEngine.standard(grid).cellsForSegments(track).mapNotNull(grid::boundsOf)
+        val explored = ExplorationEngine.standard(grid).cellsForSegments(track)
+        val cells = explored.mapNotNull(grid::boundsOf)
         val segments = track.map { segment -> segment.map { it.position } }
         val all = segments.flatten() + spots
         return WorldMapUiState(
             loading = false,
             exploredCells = cells.size,
+            territory = territoryOf(regions, explored),
+            regionOutlines = GeoJson.lines(
+                regions.flatMap { region -> region.boundary.flatMap { listOf(it.exterior) + it.holes } }.map { it + it.first() },
+            ),
             tracks = GeoJson.lines(segments),
             cells = GeoJson.squares(cells),
             fog = GeoJson.fog(cells),

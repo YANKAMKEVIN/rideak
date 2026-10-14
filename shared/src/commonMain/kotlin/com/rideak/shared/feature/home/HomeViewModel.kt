@@ -6,6 +6,9 @@ import com.rideak.data.RideRepository
 import com.rideak.data.recorder.RecorderState
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.exploration.ExplorationEngine
+import com.rideak.shared.feature.territory.RegionSource
+import com.rideak.shared.feature.territory.TerritoryProgress
+import com.rideak.shared.feature.territory.territoryOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,22 +22,24 @@ data class HomeUiState(
     val rideCount: Int = 0,
     val spotCount: Int = 0,
     val exploredCells: Int = 0,
+    /** Progress in the rider's main region, once they have explored part of one. */
+    val territory: TerritoryProgress? = null,
     val activeRide: RecorderState.Active? = null,
 )
 
-class HomeViewModel(repository: RideRepository, recorder: RideRecorder) : ViewModel() {
+class HomeViewModel(repository: RideRepository, recorder: RideRecorder, regions: RegionSource) : ViewModel() {
     private val engine = ExplorationEngine.standard()
 
     private val totals = repository.observeFinishedRides().map { rides ->
         // Exploration is derived from the stored points every time: nothing to keep in sync.
-        val cells = withContext(Dispatchers.Default) {
-            engine.cellsForSegments(repository.finishedSegments()).size
-        }
+        val cells = withContext(Dispatchers.Default) { engine.cellsForSegments(repository.finishedSegments()) }
+        val territory = territoryOf(regions.regions(), cells)
         HomeUiState(
             totalDistanceMeters = rides.sumOf { it.distanceMeters },
             rideCount = rides.size,
             spotCount = rides.sumOf { it.spotCount },
-            exploredCells = cells,
+            exploredCells = cells.size,
+            territory = territory,
         )
     }
 

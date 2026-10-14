@@ -109,7 +109,8 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
                 if (MapTab.entries[tab] == MapTab.Exploration) {
                     TerritoryCard(
                         state.exploredCells,
-                        Modifier.align(Alignment.BottomCenter).padding(12.dp)
+                        territory = state.territory,
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp)
                             .background(colors.night.copy(alpha = 0.6f), RideakTheme.shapes.medium),
                     )
                 }
@@ -163,9 +164,14 @@ private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
         val cells = rememberGeoJsonSource(GeoJsonData.JsonString(state.cells))
         val tracks = rememberGeoJsonSource(GeoJsonData.JsonString(state.tracks))
         val spots = rememberGeoJsonSource(GeoJsonData.JsonString(state.spots))
+        val outlines = rememberGeoJsonSource(GeoJsonData.JsonString(state.regionOutlines))
 
         // Exploration: the unexplored world under a veil, ridden cells clear ("ton monde se dévoile").
         FillLayer(id = "rideak-fog", source = fog, color = const(colors.night), opacity = const(0.42f), visible = tab == MapTab.Exploration)
+        LineLayer(
+            id = "rideak-regions", source = outlines, color = const(colors.reward), width = const(2.5.dp), opacity = const(0.85f),
+            join = const(LineJoin.Round), visible = tab == MapTab.Exploration,
+        )
         LineLayer(id = "rideak-cells", source = cells, color = const(colors.nature), width = const(1.5.dp), opacity = const(0.8f), visible = tab == MapTab.Exploration)
         LineLayer(
             id = "rideak-track-glow", source = tracks, color = const(colors.action), opacity = const(0.35f),
