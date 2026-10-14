@@ -23,7 +23,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v5
       - name: Build, lint and test
-        run: ./gradlew :core:exploration:jvmTest :core:ride:jvmTest :core:data:jvmTest :androidApp:assembleDebug :androidApp:lintDebug --console=plain
+        run: ./gradlew :core:exploration:jvmTest :core:ride:jvmTest :core:data:jvmTest :tools:regionpack:jvmTest :androidApp:assembleDebug :androidApp:lintDebug --console=plain
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v4
