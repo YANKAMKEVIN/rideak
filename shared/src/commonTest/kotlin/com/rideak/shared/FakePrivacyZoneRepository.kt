@@ -14,4 +14,5 @@ class FakePrivacyZoneRepository : PrivacyZoneRepository {
         zones.value += PrivacyZone("zone-${zones.value.size}", label, secret, radiusMeters)
     }
     override suspend fun remove(id: String) { zones.value = zones.value.filterNot { it.id == id } }
+    override suspend fun removeAll() { zones.value = emptyList() }
 }

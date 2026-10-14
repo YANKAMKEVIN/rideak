@@ -34,4 +34,5 @@ class FakeRideRepository : RideRepository {
     override suspend fun finishedSegmentsBefore(startedAtEpochMillis: Long): List<List<TrackPoint>> = emptyList()
     override suspend fun finishedSpots(): List<Spot> = emptyList()
     override suspend fun finishedEndpoints(): List<GeoPoint> = emptyList()
+    override suspend fun deleteFinishedRides() { rides.value = rides.value.filterValues { it.status != RideStatus.FINISHED } }
 }

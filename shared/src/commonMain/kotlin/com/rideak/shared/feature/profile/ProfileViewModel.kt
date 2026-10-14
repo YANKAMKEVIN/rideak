@@ -36,7 +36,7 @@ class ProfileViewModel(
     private val selector: LocationSourceSelector,
     appInfo: AppInfo,
     private val developer: DeveloperSettings,
-    rides: RideRepository,
+    private val rides: RideRepository,
     private val privacy: PrivacyZoneRepository,
     regions: RegionSource,
 ) : ViewModel() {
@@ -66,6 +66,14 @@ class ProfileViewModel(
 
     fun protect(suggestion: PrivacySuggestion, label: String) {
         viewModelScope.launch { privacy.protect(label, suggestion.position, DEFAULT_RADIUS_METERS) }
+    }
+
+    /** Right to erasure: finished rides (with points and spots) and privacy zones, on this device. */
+    fun eraseAll() {
+        viewModelScope.launch {
+            rides.deleteFinishedRides()
+            privacy.removeAll()
+        }
     }
 
     fun remove(zone: PrivacyZone) {

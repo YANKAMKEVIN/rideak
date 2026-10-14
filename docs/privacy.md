@@ -15,6 +15,13 @@ Ce sont des données personnelles au sens du RGPD.
 - **Aucune sauvegarde système** : `data_extraction_rules.xml` et `backup_rules.xml` excluent
   toutes les données de la sauvegarde cloud Google et du transfert d'appareil. À rouvrir
   uniquement par une décision explicite et visible de l'utilisateur.
+  Sur iOS, la base est dans `Application Support/RideakData`, marqué `NSURLIsExcludedFromBackupKey`
+  (iCloud et sauvegarde sur ordinateur) ; les anciennes versions la gardaient dans `Documents`, déplacée une fois.
+- **Politique de confidentialité** : `shared/src/commonMain/composeResources/files/legal/privacy_policy.md`, affichée
+  dans l'app (Profil → Politique de confidentialité) et publiable telle quelle pour les stores.
+  **À compléter avant publication : nom de l'éditeur et adresse de contact.**
+- **Droit à l'effacement** : Profil → « Effacer toutes mes données » (sorties terminées, traces, spots, zones privées ;
+  une sortie en cours est conservée).
 - **Zones privées (implémentées)** : `PrivacyZone` + `PrivacyMask` (`:core:exploration`), table `privacy_zones`
   (Room v2, migration automatique), section « Zones privées » du Profil.
   - **Suggestions** : les lieux où au moins 2 sorties commencent ou finissent (à 150 m près) sont proposés

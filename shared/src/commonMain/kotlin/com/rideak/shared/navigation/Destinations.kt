@@ -18,6 +18,8 @@ import kotlinx.serialization.Serializable
 // Full-screen destinations (no bottom bar). Discovery arrives with its feature.
 @Serializable data object RideRoute
 @Serializable data class RideSummaryRoute(val rideId: String)
+@Serializable data object PrivacyPolicyRoute
+@Serializable data object CreditsRoute
 
 internal data class TopLevelDestination(val route: Any, val item: BottomBarItem)
 

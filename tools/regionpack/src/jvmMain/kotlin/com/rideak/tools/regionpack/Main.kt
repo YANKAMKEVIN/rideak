@@ -41,7 +41,7 @@ fun main(args: Array<String>) {
         rideableCells = rideableCells(boundary, ways, grid),
     )
     val places = args.getOrNull(2)?.let { placesOf(elementsOf(it), boundary) }.orEmpty()
-    File(args[1]).writeText(RegionPackCodec.encode(region, "© OpenStreetMap contributors (ODbL)", places))
+    File(args[1]).writeText(RegionPackCodec.encode(region, "© OpenStreetMap contributors, ODbL 1.0", places))
     println("${region.name}: ${boundary.size} polygon(s), ${boundary.sumOf { it.exterior.size }} boundary points, " +
         "${ways.size} rideable ways, ${region.rideableCells.size} rideable cells, ${places.size} places")
     places.groupBy { it.category }.forEach { (category, list) -> println("  $category: ${list.joinToString { it.name }}") }

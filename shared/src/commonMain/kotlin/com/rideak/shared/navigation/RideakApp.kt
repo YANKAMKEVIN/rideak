@@ -18,6 +18,7 @@ import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.RideakBottomBar
 import com.rideak.shared.feature.home.HomeScreen
 import com.rideak.shared.feature.map.WorldMapScreen
+import com.rideak.shared.feature.legal.LegalScreen
 import com.rideak.shared.feature.places.PlacesScreen
 import com.rideak.shared.feature.profile.ProfileScreen
 import com.rideak.shared.feature.ride.RideScreen
@@ -61,7 +62,14 @@ fun RideakApp() {
                 composable<MapRoute> { WorldMapScreen() }
                 composable<RidesRoute> { RidesScreen(onOpenRide = { navController.navigate(RideSummaryRoute(it)) }) }
                 composable<PlacesRoute> { PlacesScreen() }
-                composable<ProfileRoute> { ProfileScreen() }
+                composable<ProfileRoute> {
+                    ProfileScreen(
+                        onPrivacyPolicy = { navController.navigate(PrivacyPolicyRoute) },
+                        onCredits = { navController.navigate(CreditsRoute) },
+                    )
+                }
+                composable<PrivacyPolicyRoute> { LegalScreen("files/legal/privacy_policy.md", onBack = { navController.popBackStack() }) }
+                composable<CreditsRoute> { LegalScreen("files/legal/credits.md", onBack = { navController.popBackStack() }) }
                 composable<RideRoute> {
                     RideScreen(
                         onFinished = { rideId ->

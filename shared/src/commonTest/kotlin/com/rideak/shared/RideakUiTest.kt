@@ -33,6 +33,13 @@ import com.rideak.exploration.PrivacyZone
 import kotlin.test.assertEquals
 import com.rideak.shared.feature.rides.RidesViewModel
 import com.rideak.shared.feature.places.PlacesViewModel
+import com.rideak.shared.feature.legal.LegalDocument
+import com.rideak.shared.feature.legal.parseMarkdown
+import com.rideak.shared.feature.map.OfflineMapSection
+import com.rideak.shared.feature.map.OfflineMapState
+import com.rideak.shared.feature.map.OfflineMapStore
+import com.rideak.shared.feature.map.OfflineMapUiState
+import com.rideak.shared.feature.map.OfflineMapViewModel
 import com.rideak.shared.feature.places.NewPlaces
 import com.rideak.shared.feature.places.PlaceSection
 import com.rideak.shared.feature.places.PlacesContent
@@ -79,6 +86,8 @@ class RideakUiTest {
                     single { DeveloperSettings() }
                     single<RegionSource> { RegionSource { emptyList() } }
                     viewModelOf(::PlacesViewModel)
+                    single<OfflineMapStore> { FakeOfflineMapStore() }
+                    viewModelOf(::OfflineMapViewModel)
                     viewModelOf(::HomeViewModel)
                     viewModelOf(::RidesViewModel)
                     viewModelOf(::ProfileViewModel)
@@ -190,5 +199,31 @@ class RideakUiTest {
         setContent { RideakTheme { RideRewards(xp = 140, badges = listOf(Badge.FIRST_RIDE)) } }
         onNodeWithText("+140 XP").assertIsDisplayed()
         onNodeWithContentDescription("Badge débloqué : 1re sortie").assertIsDisplayed()
+    }
+
+    @Test
+    fun offlineMapSectionFollowsTheDownload() = runComposeUiTest {
+        var state by mutableStateOf(OfflineMapUiState("Cergy", OfflineMapState.NotDownloaded))
+        var downloads = 0
+        setContent { RideakTheme { OfflineMapSection(state, onDownload = { downloads++ }, onDelete = {}) } }
+        onNodeWithText("Télécharger Cergy").performClick()
+        assertEquals(1, downloads)
+        state = state.copy(map = OfflineMapState.Downloading(fraction = 0.4f, bytes = 1_500_000))
+        onNodeWithText("Téléchargement de Cergy… 1,5 Mo").assertIsDisplayed()
+        state = state.copy(map = OfflineMapState.Ready(4_200_000))
+        onNodeWithText("Cergy est disponible hors ligne · 4,2 Mo").assertIsDisplayed()
+        onNodeWithText("Supprimer").assertHasClickAction()
+    }
+
+    @Test
+    fun legalDocumentRendersHeadingsAndBackArrow() = runComposeUiTest {
+        var back = false
+        val blocks = parseMarkdown("# Crédits et licences\n\n## Données cartographiques\n\nDonnées © [OpenStreetMap](https://www.openstreetmap.org/copyright).")
+        setContent { RideakTheme { LegalDocument(blocks, onBack = { back = true }) } }
+        onNodeWithText("Crédits et licences").assertIsDisplayed()
+        onNodeWithText("Données cartographiques").assertIsDisplayed()
+        onNodeWithText("Données © OpenStreetMap.").assertIsDisplayed()
+        onNodeWithContentDescription("Retour").performClick()
+        assertTrue(back)
     }
 }

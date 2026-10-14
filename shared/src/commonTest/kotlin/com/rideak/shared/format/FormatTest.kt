@@ -25,4 +25,11 @@ class FormatTest {
         assertEquals("21,6", formatKmh(6.0))
         assertEquals(23, speedKmhRounded(6.4))
     }
+
+    @Test
+    fun bytesInFrenchUnits() {
+        assertEquals("850 ko", formatBytes(850_000))
+        assertEquals("12,3 Mo", formatBytes(12_340_000))
+        assertEquals("1,0 Mo", formatBytes(1_000_000))
+    }
 }

@@ -13,6 +13,9 @@ interface PrivacyZoneDao {
     @Query("DELETE FROM privacy_zones WHERE id = :id")
     suspend fun delete(id: String)
 
+    @Query("DELETE FROM privacy_zones")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM privacy_zones ORDER BY createdAt")
     fun observeAll(): Flow<List<PrivacyZoneEntity>>
 }

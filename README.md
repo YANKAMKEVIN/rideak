@@ -43,7 +43,7 @@ Voir [`docs/exploration-model.md`](docs/exploration-model.md).
 
 ## Build
 
-Prérequis : JDK 21 (le JBR d'Android Studio), Android SDK 36, Xcode 26 pour iOS.
+Prérequis : JDK 21 (le JBR d'Android Studio), Android SDK 36, Xcode 26 pour iOS (cible minimale iOS 17.0).
 
 ```bash
 export JAVA_HOME="$HOME/Applications/Android Studio.app/Contents/jbr/Contents/Home"
@@ -75,7 +75,8 @@ tests iOS (domaine + UI Compose) sur macOS, sur `main` et à la demande seulemen
 - Découverte de lieux ✅ (47 lieux à Cergy, onglet Lieux)
 - Zones privées ✅ (suggestions, centre décalé, mode partage)
 - Progression ✅ (XP, niveaux, 6 badges, compteurs par catégorie)
-- Ensuite : filtres de carte par catégorie, onboarding, préparation de la publication
+- Préparation de la publication : carte hors ligne ✅, politique de confidentialité ✅, crédits / ODbL ✅, iOS 17 minimum ✅
+- Ensuite : compléter éditeur et contact, publier les packs ODbL, filtres de carte par catégorie, onboarding
 
 ## Technical Decisions
 

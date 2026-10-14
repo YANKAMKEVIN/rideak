@@ -22,6 +22,13 @@ fun formatKilometersShort(meters: Double): String {
     return "${tenths / 10},${tenths % 10}"
 }
 
+/** Storage size: "12,3 Mo", "850 ko". */
+fun formatBytes(bytes: Long): String {
+    if (bytes < 1_000_000) return "${(bytes / 1_000.0).roundToInt()} ko"
+    val tenths = (bytes / 100_000.0).roundToInt()
+    return "${tenths / 10},${tenths % 10} Mo"
+}
+
 fun formatDuration(millis: Long): String {
     val totalSeconds = millis / 1000
     val h = totalSeconds / 3600

@@ -20,6 +20,10 @@ interface RideDao {
     @Insert
     suspend fun insertSpot(spot: SpotEntity)
 
+    /** Points and spots follow (ON DELETE CASCADE). A ride being recorded is kept. */
+    @Query("DELETE FROM rides WHERE status = 'FINISHED'")
+    suspend fun deleteFinishedRides()
+
     @Query("SELECT r.*, (SELECT COUNT(*) FROM spots s WHERE s.rideId = r.id) AS spotCount FROM rides r WHERE r.id = :id")
     suspend fun ride(id: String): RideWithSpotCount?
 

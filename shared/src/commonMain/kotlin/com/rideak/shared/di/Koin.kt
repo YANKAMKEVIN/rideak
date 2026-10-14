@@ -5,7 +5,10 @@ import com.rideak.data.dataModule
 import com.rideak.data.platformDataModule
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.shared.feature.home.HomeViewModel
+import com.rideak.shared.feature.map.MapLibreOfflineMapStore
 import com.rideak.shared.feature.map.MapViewModel
+import com.rideak.shared.feature.map.OfflineMapStore
+import com.rideak.shared.feature.map.OfflineMapViewModel
 import com.rideak.shared.feature.places.PlacesViewModel
 import com.rideak.shared.feature.profile.ProfileViewModel
 import com.rideak.shared.feature.ride.RideViewModel
@@ -33,6 +36,8 @@ class DeveloperSettings {
 private val uiModule = module {
     single { DeveloperSettings() }
     single<RegionSource> { BundledRegions() }
+    single<OfflineMapStore> { MapLibreOfflineMapStore() }
+    viewModelOf(::OfflineMapViewModel)
     viewModelOf(::HomeViewModel)
     viewModelOf(::MapViewModel)
     viewModelOf(::RideViewModel)

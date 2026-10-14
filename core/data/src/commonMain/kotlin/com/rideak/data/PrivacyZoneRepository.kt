@@ -15,6 +15,8 @@ interface PrivacyZoneRepository {
     suspend fun protect(label: String, secret: GeoPoint, radiusMeters: Double)
 
     suspend fun remove(id: String)
+
+    suspend fun removeAll()
 }
 
 class RoomPrivacyZoneRepository(
@@ -32,4 +34,6 @@ class RoomPrivacyZoneRepository(
     }
 
     override suspend fun remove(id: String) = dao.delete(id)
+
+    override suspend fun removeAll() = dao.deleteAll()
 }

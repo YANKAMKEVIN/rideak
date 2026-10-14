@@ -64,4 +64,14 @@ class RideRepositoryTest {
         zones.remove(stored.id)
         assertTrue(zones.observeZones().first().isEmpty())
     }
+
+    @Test
+    fun erasingDeletesFinishedRidesWithTheirPointsButKeepsTheRideInProgress() = runTest {
+        ride("done", startedAt = 1_000, segments = 2)
+        ride("current", startedAt = 2_000, status = RideStatus.RECORDING)
+        repository.deleteFinishedRides()
+        assertTrue(repository.finishedSegments().isEmpty())
+        assertTrue(repository.track(RideId("done")).isEmpty(), "points cascade")
+        assertEquals(1, repository.track(RideId("current")).size)
+    }
 }

@@ -38,9 +38,15 @@ Les mesures UI (`dumpsys gfxinfo`) couvrent l'interface Compose ; la carte est r
    « duplicate symbol » au link. Fonctionne, mais à surveiller ; option : utiliser le SQLite de MapLibre/système pour Room sur iOS.
 3. **Avertissement iOS** : un objet ICU de MapLibre est compilé pour iOS 18.5 alors que la cible est 15.5 →
    à vérifier sur un vieil iPhone, ou monter la cible minimale (iOS 17/18 ≈ l'essentiel du parc en 2026).
+   **Octobre 2026** : cible minimale de l'app montée à **iOS 17.0** (parc 2026, et `CLBackgroundActivitySession`
+   disponible pour fiabiliser la localisation en arrière-plan, pas encore utilisé). Le code natif de maplibre-native-ffi
+   0.202610.0 vise iOS 15.5 ; l'avertissement reste pour `libicu.icudtl_dat.o` (18.5), qui ne contient que la table de
+   données ICU, pas de code : risque faible, **à confirmer sur un appareil iOS 17** avant publication.
 4. **Confidentialité** : le fournisseur de tuiles voit les zones consultées (pas les traces). À mentionner dans
    la politique de confidentialité ; auto-hébergement Protomaps possible plus tard.
 5. **Dépendance réseau** : sans réseau, pas de fond de carte (overlays seuls). Offline (PMTiles) à prévoir plus tard.
+   **Résolu** : carte hors ligne par région (Profil → Carte hors ligne), packs MapLibre zooms 10–14 (`OfflineMaps.kt`),
+   ~45 Mo pour Cergy (tuiles, polices et sprites compris).
 6. **Esthétique** : carte vectorielle stylisée, pas l'illustration de la planche (attendu, cf. `maps-decision.md`).
 
 ## Suite proposée
