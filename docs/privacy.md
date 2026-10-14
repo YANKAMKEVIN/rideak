@@ -15,7 +15,17 @@ Ce sont des données personnelles au sens du RGPD.
 - **Aucune sauvegarde système** : `data_extraction_rules.xml` et `backup_rules.xml` excluent
   toutes les données de la sauvegarde cloud Google et du transfert d'appareil. À rouvrir
   uniquement par une décision explicite et visible de l'utilisateur.
-- **Concept `PrivacyZone`** dans le domaine (centre + rayon, test d'appartenance).
+- **Zones privées (implémentées)** : `PrivacyZone` + `PrivacyMask` (`:core:exploration`), table `privacy_zones`
+  (Room v2, migration automatique), section « Zones privées » du Profil.
+  - **Suggestions** : les lieux où au moins 2 sorties commencent ou finissent (à 150 m près) sont proposés
+    (Domicile / Travail / Autre). Pas besoin de demander la position hors sortie.
+  - **Anti-triangulation** : `PrivacyZone.around` décale le centre de 15–40 % du rayon dans une direction
+    aléatoire et agrandit le rayon jusqu'à +25 % (400 m demandés → 400–500 m). **Seule la zone décalée est
+    stockée**, jamais le point protégé.
+  - **Masquage** : tracé coupé à l'entrée de la zone, spots retirés, et **cellules qui touchent la zone retirées**
+    (sinon les cellules explorées dessineraient le contour du domicile).
+  - **Mode partage** sur « Ma carte » : applique le masque et cache le dessin des zones elles-mêmes, pour une
+    capture d'écran. Hors mode partage, l'utilisateur voit tout, zones comprises (voile gris).
 - **La confidentialité précède le social** : aucune fonctionnalité de partage avant que les
   zones privées soient complètes.
 

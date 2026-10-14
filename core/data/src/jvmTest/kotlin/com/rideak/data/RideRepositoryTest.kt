@@ -12,6 +12,8 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
 
 class RideRepositoryTest {
     private val database = Room.inMemoryDatabaseBuilder<RideakDatabase>()
@@ -40,5 +42,26 @@ class RideRepositoryTest {
 
         assertEquals(listOf(1_000L, 1_001L), before.map { it.single().timestampEpochMillis })
         assertEquals(4, repository.finishedSegments().size) // abandoned ride excluded
+    }
+
+    @Test
+    fun endpointsAreTheFirstAndLastPointOfEachFinishedRide() = runTest {
+        ride("a", startedAt = 1_000, segments = 2)
+        ride("abandoned", startedAt = 2_000, status = RideStatus.RECORDING)
+        assertEquals(2, repository.finishedEndpoints().size)
+    }
+
+    @Test
+    fun privacyZonesAreStoredShiftedAndRemovable() = runTest {
+        var ids = 0
+        val zones = RoomPrivacyZoneRepository(database.privacyZoneDao(), clock = { 0L }, newId = { "zone-${ids++}" })
+        val home = GeoPoint(49.0364, 2.0761)
+        zones.protect("Domicile", home, radiusMeters = 400.0)
+        val stored = zones.observeZones().first().single()
+        assertEquals("Domicile", stored.label)
+        assertTrue(home in stored)
+        assertTrue(stored.center != home, "the address itself is never stored")
+        zones.remove(stored.id)
+        assertTrue(zones.observeZones().first().isEmpty())
     }
 }

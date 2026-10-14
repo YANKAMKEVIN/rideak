@@ -32,6 +32,8 @@ interface RideRepository {
     /** Same as [finishedSegments], limited to rides started before [startedAtEpochMillis]. */
     suspend fun finishedSegmentsBefore(startedAtEpochMillis: Long): List<List<TrackPoint>>
     suspend fun finishedSpots(): List<Spot>
+    /** First and last stored position of every finished ride: where rides start and end. */
+    suspend fun finishedEndpoints(): List<GeoPoint>
 }
 
 class RoomRideRepository(private val dao: RideDao) : RideRepository {
@@ -85,6 +87,11 @@ class RoomRideRepository(private val dao: RideDao) : RideRepository {
 
     override suspend fun finishedSegmentsBefore(startedAtEpochMillis: Long) =
         dao.finishedPointsBefore(startedAtEpochMillis).toSegments()
+
+    override suspend fun finishedEndpoints(): List<GeoPoint> =
+        dao.finishedPoints().groupBy { it.rideId }.values.flatMap { points ->
+            listOf(points.first(), points.last()).map { GeoPoint(it.latitude, it.longitude) }
+        }
 
     override suspend fun finishedSpots() = dao.finishedSpots().map {
         Spot(SpotId(it.id), RideId(it.rideId), GeoPoint(it.latitude, it.longitude), it.createdAt)

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -93,13 +94,16 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val colors = RideakTheme.colors
     Column(Modifier.fillMaxSize().background(colors.night).windowInsetsPadding(WindowInsets.statusBars)) {
-        Text(
-            "Ma carte",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = colors.textPrimary,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).semantics { heading() },
-        )
+        Row(Modifier.fillMaxWidth().padding(end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Ma carte",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary,
+                modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 8.dp).semantics { heading() },
+            )
+            if (state.hasPrivacyZones) ShareModeToggle(state.shareMode, viewModel::setShareMode)
+        }
         Tabs(selected = tab, onSelect = { tab = it })
         Box(Modifier.weight(1f).fillMaxWidth().padding(top = 10.dp)) {
             if (state.loading) {
@@ -164,10 +168,14 @@ private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
         val cells = rememberGeoJsonSource(GeoJsonData.JsonString(state.cells))
         val tracks = rememberGeoJsonSource(GeoJsonData.JsonString(state.tracks))
         val spots = rememberGeoJsonSource(GeoJsonData.JsonString(state.spots))
+        val privacy = rememberGeoJsonSource(GeoJsonData.JsonString(state.privacyZones))
         val outlines = rememberGeoJsonSource(GeoJsonData.JsonString(state.regionOutlines))
 
         // Exploration: the unexplored world under a veil, ridden cells clear ("ton monde se dévoile").
         FillLayer(id = "rideak-fog", source = fog, color = const(colors.night), opacity = const(0.42f), visible = tab == MapTab.Exploration)
+        // Privacy zones: a discreet veil, for the rider only (empty in share mode).
+        FillLayer(id = "rideak-privacy", source = privacy, color = const(colors.lightSurface), opacity = const(0.22f))
+        LineLayer(id = "rideak-privacy-edge", source = privacy, color = const(colors.lightSurface), width = const(1.5.dp), opacity = const(0.9f))
         LineLayer(
             id = "rideak-regions", source = outlines, color = const(colors.reward), width = const(2.5.dp), opacity = const(0.85f),
             join = const(LineJoin.Round), visible = tab == MapTab.Exploration,
@@ -242,5 +250,27 @@ private fun CategoryCarousel(exploredCells: Int) {
                 }
             }
         }
+    }
+}
+
+/** "Mode partage": hides everything inside privacy zones, for screenshots. */
+@Composable
+private fun ShareModeToggle(enabled: Boolean, onChange: (Boolean) -> Unit) {
+    val colors = RideakTheme.colors
+    Row(
+        Modifier.heightIn(min = 44.dp)
+            .clip(RideakTheme.shapes.pill)
+            .background(if (enabled) colors.reward else colors.surface)
+            .toggleable(enabled, role = Role.Switch, onValueChange = onChange)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // The fill shows the state; the Switch role announces it to screen readers.
+        Text(
+            "Mode partage",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (enabled) colors.onAccent else colors.textPrimary,
+        )
     }
 }

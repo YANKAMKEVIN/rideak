@@ -1,6 +1,8 @@
 package com.rideak.shared.feature.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,13 +32,16 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ProfileScreen(viewModel: ProfileViewModel = koinViewModel()) {
     val simulation by viewModel.simulation.collectAsStateWithLifecycle()
     val stress by viewModel.mapStressTest.collectAsStateWithLifecycle()
+    val privacy by viewModel.privacyState.collectAsStateWithLifecycle()
     val c = RideakTheme.colors
     Column(
-        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).padding(RideakTheme.spacing.l),
+        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).verticalScroll(rememberScrollState()).padding(RideakTheme.spacing.l),
         verticalArrangement = Arrangement.spacedBy(RideakTheme.spacing.m),
     ) {
         Text("Profil", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = c.textPrimary, modifier = Modifier.semantics { heading() })
         Text("Ta progression arrive bientôt.", style = MaterialTheme.typography.bodyLarge, color = c.textSecondary)
+
+        PrivacySection(privacy, onProtect = viewModel::protect, onRemove = viewModel::remove)
 
         if (viewModel.showDeveloperTools) {
             Column(

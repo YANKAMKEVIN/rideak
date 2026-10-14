@@ -24,6 +24,12 @@ import com.rideak.shared.di.AppInfo
 import com.rideak.shared.di.DeveloperSettings
 import com.rideak.shared.feature.home.HomeViewModel
 import com.rideak.shared.feature.profile.ProfileViewModel
+import com.rideak.shared.feature.profile.PrivacySection
+import com.rideak.shared.feature.profile.PrivacyUiState
+import com.rideak.data.PrivacyZoneRepository
+import com.rideak.exploration.PrivacySuggestion
+import com.rideak.exploration.PrivacyZone
+import kotlin.test.assertEquals
 import com.rideak.shared.feature.rides.RidesViewModel
 import com.rideak.shared.feature.places.PlacesViewModel
 import com.rideak.shared.feature.places.NewPlaces
@@ -58,6 +64,7 @@ class RideakUiTest {
                 module {
                     val noGps = LocationSource { emptyFlow() }
                     single<RideRepository> { FakeRideRepository() }
+                    single<PrivacyZoneRepository> { FakePrivacyZoneRepository() }
                     single { LocationSourceSelector(noGps, noGps) }
                     single { RideRecorder(get(), { noGps }, MainScope(), { 0L }, { "id" }) }
                     single { AppInfo(isDebug = true) }
@@ -135,5 +142,19 @@ class RideakUiTest {
         onNodeWithContentDescription("Parc : Parc François-Mitterrand").assertIsDisplayed()
         onNodeWithText("3 lieux encore cachés").assertIsDisplayed()
         onNodeWithText("1 lieu encore caché").assertIsDisplayed()
+    }
+
+    @Test
+    fun privacySectionOffersToProtectFrequentStarts() = runComposeUiTest {
+        val home = GeoPoint(49.0364, 2.0761)
+        var protected: String? = null
+        var state by mutableStateOf(PrivacyUiState(suggestions = listOf(PrivacySuggestion(home, rides = 4))))
+        setContent { RideakTheme { PrivacySection(state, onProtect = { _, label -> protected = label }, onRemove = {}) } }
+        onNodeWithText("4 sorties partent ou arrivent au même endroit. Le protéger ?").assertIsDisplayed()
+        onNodeWithText("Domicile").assertHasClickAction().performClick()
+        assertEquals("Domicile", protected)
+        state = PrivacyUiState(zones = listOf(PrivacyZone("z", "Domicile", home, 437.0)))
+        onNodeWithText("Domicile · 440 m").assertIsDisplayed()
+        onNodeWithText("Retirer").assertHasClickAction()
     }
 }

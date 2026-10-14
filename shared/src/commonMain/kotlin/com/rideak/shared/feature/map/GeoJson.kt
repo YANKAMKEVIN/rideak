@@ -2,6 +2,11 @@ package com.rideak.shared.feature.map
 
 import com.rideak.exploration.GeoBounds
 import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.PrivacyZone
+import com.rideak.exploration.offset
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Minimal GeoJSON writers for the map overlays (no extra dependency).
@@ -63,6 +68,25 @@ internal object GeoJson {
             append("""{"type":"Polygon","coordinates":[""")
             ring(GeoBounds(south = -85.0, west = -180.0, north = 85.0, east = 180.0), clockwise = false)
             explored.forEach { append(','); ring(it, clockwise = true) }
+            append("]}")
+        },
+    )
+
+    /** Privacy zones as 48-sided polygons. */
+    fun circles(zones: List<PrivacyZone>): String = feature(
+        buildString {
+            append("""{"type":"MultiPolygon","coordinates":[""")
+            zones.forEachIndexed { i, zone ->
+                if (i > 0) append(',')
+                append("[[")
+                (0..48).forEach { k ->
+                    if (k > 0) append(',')
+                    val angle = 2 * PI * k / 48
+                    val p = zone.center.offset(northMeters = zone.radiusMeters * cos(angle), eastMeters = zone.radiusMeters * sin(angle))
+                    position(p.longitude, p.latitude)
+                }
+                append("]]")
+            }
             append("]}")
         },
     )

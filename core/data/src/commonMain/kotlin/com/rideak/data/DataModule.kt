@@ -37,6 +37,8 @@ val dataModule = module {
     single { get<RoomDatabase.Builder<RideakDatabase>>().buildRideakDatabase() }
     single { get<RideakDatabase>().rideDao() }
     single<RideRepository> { RoomRideRepository(get()) }
+    single { get<RideakDatabase>().privacyZoneDao() }
+    single<PrivacyZoneRepository> { RoomPrivacyZoneRepository(get(), ::nowEpochMillis, ::newUuid) }
     single { LocationSourceSelector(device = get<LocationSource>(DeviceLocation), simulated = SimulatedLocationSource(::nowEpochMillis)) }
     single {
         val selector = get<LocationSourceSelector>()

@@ -3,7 +3,11 @@ package com.rideak.shared.feature.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rideak.data.RideRepository
+import com.rideak.data.PrivacyZoneRepository
+import com.rideak.exploration.CellId
 import com.rideak.exploration.ExplorationEngine
+import com.rideak.exploration.PrivacyMask
+import com.rideak.exploration.PrivacyZone
 import com.rideak.exploration.GeoPoint
 import com.rideak.exploration.SlippyTileGrid
 import com.rideak.exploration.TrackPoint
@@ -15,7 +19,11 @@ import com.rideak.shared.feature.territory.territoryOf
 import com.rideak.exploration.ExplorationRegion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.ln
@@ -33,6 +41,11 @@ data class WorldMapUiState(
     val cells: String = GeoJson.squares(emptyList()),
     val fog: String = GeoJson.fog(emptyList()),
     val spots: String = GeoJson.points(emptyList()),
+    /** The rider's privacy zones, drawn for them only (never in share mode). */
+    val privacyZones: String = GeoJson.circles(emptyList()),
+    val hasPrivacyZones: Boolean = false,
+    /** Share mode: everything inside a privacy zone is hidden, ready for a screenshot. */
+    val shareMode: Boolean = false,
     val camera: MapCamera = MapCamera(49.0364, 2.0761, 12.5),
     /** South-west and north-east corners of everything ridden, for an inset-aware camera fit. */
     val bounds: List<GeoPoint> = emptyList(),
@@ -43,37 +56,64 @@ class MapViewModel(
     private val repository: RideRepository,
     private val developer: DeveloperSettings,
     private val regions: RegionSource,
+    privacy: PrivacyZoneRepository,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(WorldMapUiState())
-    val state: StateFlow<WorldMapUiState> = _state
+    private class Ridden(
+        val segments: List<List<GeoPoint>>,
+        val spots: List<GeoPoint>,
+        val explored: Set<CellId>,
+        val regions: List<ExplorationRegion>,
+    )
+
+    private val grid = SlippyTileGrid()
+    private val ridden = MutableStateFlow<Ridden?>(null)
+    private val shareMode = MutableStateFlow(false)
+
+    val state: StateFlow<WorldMapUiState> =
+        combine(ridden.filterNotNull(), privacy.observeZones(), shareMode) { ridden, zones, share ->
+            withContext(Dispatchers.Default) { build(ridden, zones, share) }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WorldMapUiState())
 
     init {
         viewModelScope.launch {
-            val segments = repository.finishedSegments() +
+            val track = repository.finishedSegments() +
                 if (developer.mapStressTest.value) listOf(stressTrack()) else emptyList()
             val spots = repository.finishedSpots().map { it.position }
             val regions = regions.regions()
-            _state.value = withContext(Dispatchers.Default) { build(segments, spots, regions) }
+            ridden.value = withContext(Dispatchers.Default) {
+                Ridden(
+                    segments = track.map { segment -> segment.map { it.position } },
+                    spots = spots,
+                    explored = ExplorationEngine.standard(grid).cellsForSegments(track),
+                    regions = regions,
+                )
+            }
         }
     }
 
-    private fun build(track: List<List<TrackPoint>>, spots: List<GeoPoint>, regions: List<ExplorationRegion>): WorldMapUiState {
-        val grid = SlippyTileGrid()
-        val explored = ExplorationEngine.standard(grid).cellsForSegments(track)
-        val cells = explored.mapNotNull(grid::boundsOf)
-        val segments = track.map { segment -> segment.map { it.position } }
-        val all = segments.flatten() + spots
+    fun setShareMode(enabled: Boolean) {
+        shareMode.value = enabled
+    }
+
+    private fun build(ridden: Ridden, zones: List<PrivacyZone>, share: Boolean): WorldMapUiState {
+        // The rider sees everything on their own map; share mode hides what lies in their zones.
+        val mask = PrivacyMask(if (share) zones else emptyList())
+        val cells = mask.cells(ridden.explored, grid).mapNotNull(grid::boundsOf)
+        val all = ridden.segments.flatten() + ridden.spots
         return WorldMapUiState(
             loading = false,
-            exploredCells = cells.size,
-            territory = territoryOf(regions, explored),
+            exploredCells = ridden.explored.size,
+            territory = territoryOf(ridden.regions, ridden.explored),
             regionOutlines = GeoJson.lines(
-                regions.flatMap { region -> region.boundary.flatMap { listOf(it.exterior) + it.holes } }.map { it + it.first() },
+                ridden.regions.flatMap { region -> region.boundary.flatMap { listOf(it.exterior) + it.holes } }.map { it + it.first() },
             ),
-            tracks = GeoJson.lines(segments),
+            tracks = GeoJson.lines(mask.lines(ridden.segments)),
             cells = GeoJson.squares(cells),
             fog = GeoJson.fog(cells),
-            spots = GeoJson.points(spots),
+            spots = GeoJson.points(mask.points(ridden.spots)),
+            privacyZones = GeoJson.circles(if (share) emptyList() else zones),
+            hasPrivacyZones = zones.isNotEmpty(),
+            shareMode = share,
             camera = if (all.isEmpty()) WorldMapUiState().camera else fit(all),
             bounds = if (all.isEmpty()) emptyList() else listOf(
                 GeoPoint(all.minOf { it.latitude }, all.minOf { it.longitude }),

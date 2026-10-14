@@ -1,6 +1,7 @@
 package com.rideak.shared
 
 import com.rideak.data.RideRepository
+import com.rideak.exploration.GeoPoint
 import com.rideak.exploration.RideId
 import com.rideak.exploration.TrackPoint
 import com.rideak.ride.RideStatus
@@ -32,4 +33,5 @@ class FakeRideRepository : RideRepository {
     override suspend fun finishedSegments(): List<List<TrackPoint>> = emptyList()
     override suspend fun finishedSegmentsBefore(startedAtEpochMillis: Long): List<List<TrackPoint>> = emptyList()
     override suspend fun finishedSpots(): List<Spot> = emptyList()
+    override suspend fun finishedEndpoints(): List<GeoPoint> = emptyList()
 }

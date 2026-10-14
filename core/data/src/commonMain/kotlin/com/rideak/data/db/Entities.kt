@@ -51,6 +51,17 @@ data class SpotEntity(
     val createdAt: Long,
 )
 
+/** Stored already shifted (PrivacyZone.around): the protected address itself is never written. */
+@Entity(tableName = "privacy_zones")
+data class PrivacyZoneEntity(
+    @PrimaryKey val id: String,
+    val label: String,
+    val latitude: Double,
+    val longitude: Double,
+    val radiusM: Double,
+    val createdAt: Long,
+)
+
 data class RideWithSpotCount(
     @Embedded val ride: RideEntity,
     val spotCount: Int,
