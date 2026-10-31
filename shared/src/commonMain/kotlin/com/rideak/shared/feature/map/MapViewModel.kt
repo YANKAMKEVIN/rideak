@@ -8,8 +8,10 @@ import com.rideak.exploration.CellId
 import com.rideak.exploration.ExplorationEngine
 import com.rideak.exploration.ExplorationRegion
 import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.Place
 import com.rideak.exploration.PlaceCategory
 import com.rideak.exploration.PlaceDiscoverer
+import com.rideak.exploration.PlaceId
 import com.rideak.exploration.PrivacyMask
 import com.rideak.exploration.PrivacyZone
 import com.rideak.exploration.SlippyTileGrid
@@ -42,6 +44,12 @@ data class WorldMapUiState(
     /** Cities (regions) explored, and places discovered per category, for the carousel. */
     val cities: Counter = Counter(0, 0),
     val places: Map<PlaceCategory, Counter> = emptyMap(),
+    /** Carousel selection, and the discovered places it puts on the map. */
+    val filter: MapFilter = MapFilter.ALL,
+    val shownPlaces: Int = 0,
+    val placeAreas: String = GeoJson.polygons(emptyList()),
+    val placeLines: String = GeoJson.lines(emptyList()),
+    val placePoints: String = GeoJson.points(emptyList()),
     /** Outline of every known region, so the rider sees the territory to conquer. */
     val regionOutlines: String = GeoJson.lines(emptyList()),
     val tracks: String = GeoJson.lines(emptyList()),
@@ -54,7 +62,7 @@ data class WorldMapUiState(
     /** Share mode: everything inside a privacy zone is hidden, ready for a screenshot. */
     val shareMode: Boolean = false,
     val camera: MapCamera = MapCamera(49.0364, 2.0761, 12.5),
-    /** South-west and north-east corners of everything ridden, for an inset-aware camera fit. */
+    /** South-west and north-east corners of what the filter shows (everything ridden by default), for an inset-aware camera fit. */
     val bounds: List<GeoPoint> = emptyList(),
 )
 
@@ -70,16 +78,18 @@ class MapViewModel(
         val spots: List<GeoPoint>,
         val explored: Set<CellId>,
         val regions: List<ExplorationRegion>,
-        val places: Map<PlaceCategory, Counter>,
+        val places: List<Place>,
+        val found: Set<PlaceId>,
     )
 
     private val grid = SlippyTileGrid()
     private val ridden = MutableStateFlow<Ridden?>(null)
     private val shareMode = MutableStateFlow(false)
+    private val filter = MutableStateFlow(MapFilter.ALL)
 
     val state: StateFlow<WorldMapUiState> =
-        combine(ridden.filterNotNull(), privacy.observeZones(), shareMode) { ridden, zones, share ->
-            withContext(Dispatchers.Default) { build(ridden, zones, share) }
+        combine(ridden.filterNotNull(), privacy.observeZones(), shareMode, filter) { ridden, zones, share, filter ->
+            withContext(Dispatchers.Default) { build(ridden, zones, share, filter) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WorldMapUiState())
 
     init {
@@ -91,13 +101,13 @@ class MapViewModel(
             ridden.value = withContext(Dispatchers.Default) {
                 val engine = ExplorationEngine.standard(grid)
                 val places = packs.flatMap { it.places }
-                val found = PlaceDiscoverer().discovered(places, engine.pathsFor(track))
                 Ridden(
                     segments = track.map { segment -> segment.map { it.position } },
                     spots = spots,
                     explored = engine.cellsForSegments(track),
                     regions = packs.map { it.region },
-                    places = places.groupBy { it.category }.mapValues { (_, list) -> Counter(list.count { it.id in found }, list.size) },
+                    places = places,
+                    found = PlaceDiscoverer().discovered(places, engine.pathsFor(track)),
                 )
             }
         }
@@ -107,20 +117,35 @@ class MapViewModel(
         shareMode.value = enabled
     }
 
-    private fun build(ridden: Ridden, zones: List<PrivacyZone>, share: Boolean): WorldMapUiState {
+    fun select(filter: MapFilter) {
+        this.filter.value = filter
+    }
+
+    private fun build(ridden: Ridden, zones: List<PrivacyZone>, share: Boolean, filter: MapFilter): WorldMapUiState {
         // The rider sees everything on their own map; share mode hides what lies in their zones.
         val mask = PrivacyMask(if (share) zones else emptyList())
         val cells = mask.cells(ridden.explored, grid).mapNotNull(grid::boundsOf)
         val all = ridden.segments.flatten() + ridden.spots
+        val overlay = placeOverlay(ridden.places, ridden.found, filter, mask)
+        val outlines = ridden.regions.flatMap { region -> region.boundary.flatMap { listOf(it.exterior) + it.holes } }
+        val focus = when {
+            filter == MapFilter.CITIES && outlines.isNotEmpty() -> outlines.flatten()
+            overlay.count > 0 -> overlay.vertices
+            else -> all
+        }
         return WorldMapUiState(
             loading = false,
             exploredCells = ridden.explored.size,
             territory = territoryOf(ridden.regions, ridden.explored),
             cities = Counter(ridden.regions.count { it.progress(ridden.explored).exploredRideableCells > 0 }, ridden.regions.size),
-            places = ridden.places,
-            regionOutlines = GeoJson.lines(
-                ridden.regions.flatMap { region -> region.boundary.flatMap { listOf(it.exterior) + it.holes } }.map { it + it.first() },
-            ),
+            places = ridden.places.groupBy { it.category }
+                .mapValues { (_, list) -> Counter(list.count { it.id in ridden.found }, list.size) },
+            filter = filter,
+            shownPlaces = overlay.count,
+            placeAreas = GeoJson.polygons(overlay.areas),
+            placeLines = GeoJson.lines(overlay.lines + overlay.areas.flatMap { listOf(it.exterior) + it.holes }.map { it + it.first() }),
+            placePoints = GeoJson.points(overlay.points),
+            regionOutlines = GeoJson.lines(outlines.map { it + it.first() }),
             tracks = GeoJson.lines(mask.lines(ridden.segments)),
             cells = GeoJson.squares(cells),
             fog = GeoJson.fog(cells),
@@ -129,10 +154,7 @@ class MapViewModel(
             hasPrivacyZones = zones.isNotEmpty(),
             shareMode = share,
             camera = if (all.isEmpty()) WorldMapUiState().camera else fit(all),
-            bounds = if (all.isEmpty()) emptyList() else listOf(
-                GeoPoint(all.minOf { it.latitude }, all.minOf { it.longitude }),
-                GeoPoint(all.maxOf { it.latitude }, all.maxOf { it.longitude }),
-            ),
+            bounds = boundsOf(focus),
         )
     }
 

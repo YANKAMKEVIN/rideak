@@ -66,6 +66,7 @@ import org.maplibre.compose.expressions.dsl.image
 import org.maplibre.compose.expressions.value.LineCap
 import org.maplibre.compose.expressions.value.LineJoin
 import org.maplibre.compose.expressions.value.SymbolAnchor
+import org.maplibre.compose.layers.CircleLayer
 import org.maplibre.compose.layers.FillLayer
 import org.maplibre.compose.layers.LineLayer
 import org.maplibre.compose.layers.SymbolLayer
@@ -78,8 +79,14 @@ import org.maplibre.spatialk.geojson.Position
 
 private enum class MapTab(val label: String) { Exploration("Exploration"), Favorites("Lieux favoris"), Rides("Mes trajets") }
 
-/** One carousel card: an illustration and what has been found in that category. */
-private data class CategoryCard(val label: String, val image: DrawableResource, val count: (WorldMapUiState) -> String)
+/** One carousel card: an illustration, what has been found in that category, and what the map says when nothing is. */
+private data class CategoryCard(
+    val filter: MapFilter,
+    val label: String,
+    val image: DrawableResource,
+    val empty: String = "",
+    val count: (WorldMapUiState) -> String,
+)
 
 private fun WorldMapUiState.placesOf(vararg categories: PlaceCategory): String {
     val counters = categories.mapNotNull { places[it] }
@@ -87,11 +94,17 @@ private fun WorldMapUiState.placesOf(vararg categories: PlaceCategory): String {
 }
 
 private val categories = listOf(
-    CategoryCard("Tout", Res.drawable.card_all) { "${it.exploredCells} zones" },
-    CategoryCard("Villes", Res.drawable.card_cities) { "${it.cities.found} / ${it.cities.total}" },
-    CategoryCard("Parcs", Res.drawable.card_parks) { it.placesOf(PlaceCategory.PARK) },
-    CategoryCard("Rivières", Res.drawable.card_rivers) { it.placesOf(PlaceCategory.RIVER, PlaceCategory.LAKE) },
-    CategoryCard("Forêts", Res.drawable.card_forests) { it.placesOf(PlaceCategory.FOREST) },
+    CategoryCard(MapFilter.ALL, "Tout", Res.drawable.card_all) { "${it.exploredCells} zones" },
+    CategoryCard(MapFilter.CITIES, "Villes", Res.drawable.card_cities) { "${it.cities.found} / ${it.cities.total}" },
+    CategoryCard(MapFilter.PARKS, "Parcs", Res.drawable.card_parks, "Aucun parc découvert pour l'instant") {
+        it.placesOf(PlaceCategory.PARK)
+    },
+    CategoryCard(MapFilter.WATER, "Rivières", Res.drawable.card_rivers, "Aucune rivière ni plan d'eau découvert pour l'instant") {
+        it.placesOf(PlaceCategory.RIVER, PlaceCategory.LAKE)
+    },
+    CategoryCard(MapFilter.FORESTS, "Forêts", Res.drawable.card_forests, "Aucune forêt découverte pour l'instant") {
+        it.placesOf(PlaceCategory.FOREST)
+    },
 )
 
 /** "Ma carte", laid out after mockup "6. MA CARTE". */
@@ -117,6 +130,12 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else {
                 ExplorationMap(state, MapTab.entries[tab])
+                if (state.filter.showsPlaces && state.shownPlaces == 0) {
+                    EmptyFilterHint(
+                        categories.first { it.filter == state.filter }.empty,
+                        Modifier.align(Alignment.TopCenter).padding(12.dp),
+                    )
+                }
                 if (MapTab.entries[tab] == MapTab.Exploration) {
                     TerritoryCard(
                         state.exploredCells,
@@ -127,8 +146,21 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
                 }
             }
         }
-        CategoryCarousel(state)
+        CategoryCarousel(state, viewModel::select)
     }
+}
+
+/** A selected category with nothing discovered yet: say so rather than show an unchanged map. */
+@Composable
+private fun EmptyFilterHint(text: String, modifier: Modifier = Modifier) {
+    val colors = RideakTheme.colors
+    Text(
+        "$text : pars à leur recherche !",
+        style = MaterialTheme.typography.labelLarge,
+        color = colors.textPrimary,
+        textAlign = TextAlign.Center,
+        modifier = modifier.background(colors.night.copy(alpha = 0.8f), RideakTheme.shapes.medium).padding(horizontal = 14.dp, vertical = 10.dp),
+    )
 }
 
 @Composable
@@ -177,15 +209,31 @@ private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
         val spots = rememberGeoJsonSource(GeoJsonData.JsonString(state.spots))
         val privacy = rememberGeoJsonSource(GeoJsonData.JsonString(state.privacyZones))
         val outlines = rememberGeoJsonSource(GeoJsonData.JsonString(state.regionOutlines))
+        val placeAreas = rememberGeoJsonSource(GeoJsonData.JsonString(state.placeAreas))
+        val placeLines = rememberGeoJsonSource(GeoJsonData.JsonString(state.placeLines))
+        val placePoints = rememberGeoJsonSource(GeoJsonData.JsonString(state.placePoints))
+        val placeColor = if (state.filter == MapFilter.WATER) colors.exploration else colors.nature
 
         // Exploration: the unexplored world under a veil, ridden cells clear ("ton monde se dévoile").
         FillLayer(id = "rideak-fog", source = fog, color = const(colors.night), opacity = const(0.42f), visible = tab == MapTab.Exploration)
         // Privacy zones: a discreet veil, for the rider only (empty in share mode).
         FillLayer(id = "rideak-privacy", source = privacy, color = const(colors.lightSurface), opacity = const(0.22f))
         LineLayer(id = "rideak-privacy-edge", source = privacy, color = const(colors.lightSurface), width = const(1.5.dp), opacity = const(0.9f))
+        val cities = state.filter == MapFilter.CITIES
         LineLayer(
-            id = "rideak-regions", source = outlines, color = const(colors.reward), width = const(2.5.dp), opacity = const(0.85f),
-            join = const(LineJoin.Round), visible = tab == MapTab.Exploration,
+            id = "rideak-regions", source = outlines, color = const(colors.reward),
+            width = const(if (cities) 4.dp else 2.5.dp), opacity = const(if (cities) 1f else 0.85f),
+            join = const(LineJoin.Round), visible = tab == MapTab.Exploration || cities,
+        )
+        // Discovered places of the selected category, above the fog so they read as conquered.
+        FillLayer(id = "rideak-place-areas", source = placeAreas, color = const(placeColor), opacity = const(0.35f))
+        LineLayer(
+            id = "rideak-place-lines", source = placeLines, color = const(placeColor), width = const(3.dp),
+            cap = const(LineCap.Round), join = const(LineJoin.Round),
+        )
+        CircleLayer(
+            id = "rideak-place-points", source = placePoints, color = const(placeColor), radius = const(7.dp),
+            strokeColor = const(colors.night), strokeWidth = const(2.dp),
         )
         LineLayer(id = "rideak-cells", source = cells, color = const(colors.nature), width = const(1.5.dp), opacity = const(0.8f), visible = tab == MapTab.Exploration)
         LineLayer(
@@ -222,8 +270,8 @@ private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
 }
 
 @Composable
-private fun CategoryCarousel(state: WorldMapUiState) {
-    // A strip of counters, not a filter: filtering the map by category comes later.
+private fun CategoryCarousel(state: WorldMapUiState, onSelect: (MapFilter) -> Unit) {
+    // Counters that double as map filters: one card selected at a time, "Tout" by default.
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -232,10 +280,13 @@ private fun CategoryCarousel(state: WorldMapUiState) {
             val card = categories[index]
             val count = card.count(state)
             val colors = RideakTheme.colors
+            val isSelected = card.filter == state.filter
             Column(
                 Modifier.width(76.dp)
                     .clip(RideakTheme.shapes.medium)
-                    .clearAndSetSemantics { contentDescription = "${card.label} : $count" },
+                    .border(2.dp, if (isSelected) colors.exploration else Color.Transparent, RideakTheme.shapes.medium)
+                    .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(card.filter) })
+                    .semantics { contentDescription = "${card.label} : $count" },
             ) {
                 Box(Modifier.height(78.dp).fillMaxWidth()) {
                     Image(painterResource(card.image), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -245,8 +296,15 @@ private fun CategoryCarousel(state: WorldMapUiState) {
                     Modifier.fillMaxWidth().background(colors.night).padding(vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(card.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = colors.textPrimary, maxLines = 1)
-                    Text(count, style = MaterialTheme.typography.labelSmall, color = colors.textSecondary, maxLines = 1)
+                    // The card's description says both; the texts are not read twice.
+                    Text(
+                        card.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = colors.textPrimary,
+                        maxLines = 1, modifier = Modifier.clearAndSetSemantics {},
+                    )
+                    Text(
+                        count, style = MaterialTheme.typography.labelSmall, color = colors.textSecondary,
+                        maxLines = 1, modifier = Modifier.clearAndSetSemantics {},
+                    )
                 }
             }
         }

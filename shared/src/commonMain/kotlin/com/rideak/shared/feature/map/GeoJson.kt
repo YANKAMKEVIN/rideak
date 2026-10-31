@@ -2,6 +2,7 @@ package com.rideak.shared.feature.map
 
 import com.rideak.exploration.GeoBounds
 import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.PlaceGeometry
 import com.rideak.exploration.PrivacyZone
 import com.rideak.exploration.offset
 import kotlin.math.PI
@@ -58,6 +59,25 @@ internal object GeoJson {
         buildString {
             append("""{"type":"MultiPolygon","coordinates":[""")
             cells.forEachIndexed { i, b -> if (i > 0) append(','); append('['); ring(b, clockwise = false); append(']') }
+            append("]}")
+        },
+    )
+
+    /** Place areas (parks, forests, lakes) with their holes; rings are closed here. */
+    fun polygons(polygons: List<PlaceGeometry.Polygon>): String = feature(
+        buildString {
+            append("""{"type":"MultiPolygon","coordinates":[""")
+            polygons.forEachIndexed { i, polygon ->
+                if (i > 0) append(',')
+                append('[')
+                (listOf(polygon.exterior) + polygon.holes).forEachIndexed { j, ring ->
+                    if (j > 0) append(',')
+                    append('[')
+                    (ring + ring.first()).forEachIndexed { k, p -> if (k > 0) append(','); position(p.longitude, p.latitude) }
+                    append(']')
+                }
+                append(']')
+            }
             append("]}")
         },
     )
