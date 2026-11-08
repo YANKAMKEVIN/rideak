@@ -38,9 +38,8 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
   une sortie simulée complète (Profil → Outils de développement, ~10 min) suffit à les voir.
 - Filtres de « Ma carte » : rendu vérifié sur simulateur iOS (Tout, Villes, Parcs, Rivières, message vide).
   Le masquage en mode partage (lieu touchant une zone privée) n'est couvert que par les tests.
-- « Ma carte » calcule ses données une seule fois (`MapViewModel.init`) et l'écran reste en mémoire entre
-  les onglets : la carte ne se mettrait donc pas à jour après une nouvelle sortie sans relancer l'app.
-  Constaté avec le mode « 1 000 zones de test », pas encore rejoué avec une vraie sortie.
+- « Ma carte » suit désormais les sorties terminées (nouvelle sortie, effacement) : couvert par `MapViewModelTest`
+  et vérifié sur simulateur avec le mode « 1 000 zones de test », pas encore avec une vraie sortie.
 - Tous les seuils du moteur (dérive 15 m, 45 km/h, interpolation 60 s / 400 m, découverte 40 / 30 m)
   sont des premières estimations à valider sur de vraies sorties.
 

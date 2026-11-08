@@ -27,9 +27,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class MapCamera(val latitude: Double, val longitude: Double, val zoom: Double)
@@ -83,7 +83,10 @@ class MapViewModel(
     )
 
     private val grid = SlippyTileGrid()
-    private val ridden = MutableStateFlow<Ridden?>(null)
+    // Eager and tied to the stored rides: the screen outlives tab switches, and a new ride or an erasure must show.
+    private val ridden: StateFlow<Ridden?> =
+        combine(repository.observeFinishedRides().distinctUntilChanged(), developer.mapStressTest) { _, stress -> load(stress) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val shareMode = MutableStateFlow(false)
     private val filter = MutableStateFlow(MapFilter.ALL)
 
@@ -92,24 +95,21 @@ class MapViewModel(
             withContext(Dispatchers.Default) { build(ridden, zones, share, filter) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WorldMapUiState())
 
-    init {
-        viewModelScope.launch {
-            val track = repository.finishedSegments() +
-                if (developer.mapStressTest.value) listOf(stressTrack()) else emptyList()
-            val spots = repository.finishedSpots().map { it.position }
-            val packs = regions.packs()
-            ridden.value = withContext(Dispatchers.Default) {
-                val engine = ExplorationEngine.standard(grid)
-                val places = packs.flatMap { it.places }
-                Ridden(
-                    segments = track.map { segment -> segment.map { it.position } },
-                    spots = spots,
-                    explored = engine.cellsForSegments(track),
-                    regions = packs.map { it.region },
-                    places = places,
-                    found = PlaceDiscoverer().discovered(places, engine.pathsFor(track)),
-                )
-            }
+    private suspend fun load(stress: Boolean): Ridden {
+        val track = repository.finishedSegments() + if (stress) listOf(stressTrack()) else emptyList()
+        val spots = repository.finishedSpots().map { it.position }
+        val packs = regions.packs()
+        return withContext(Dispatchers.Default) {
+            val engine = ExplorationEngine.standard(grid)
+            val places = packs.flatMap { it.places }
+            Ridden(
+                segments = track.map { segment -> segment.map { it.position } },
+                spots = spots,
+                explored = engine.cellsForSegments(track),
+                regions = packs.map { it.region },
+                places = places,
+                found = PlaceDiscoverer().discovered(places, engine.pathsFor(track)),
+            )
         }
     }
 
