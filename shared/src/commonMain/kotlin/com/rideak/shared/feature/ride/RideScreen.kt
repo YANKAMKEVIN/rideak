@@ -202,10 +202,17 @@ private fun ActiveRide(
                 color = colors.reward,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
+            // On its own pill: grey text straight on a light map tile was unreadable in daylight.
             state.track.isEmpty() -> Text(
                 "En attente du GPS…",
                 style = MaterialTheme.typography.titleMedium,
-                color = colors.textSecondary,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.mangaWhite,
+                modifier = Modifier
+                    .background(colors.night.copy(alpha = 0.9f), RideakTheme.shapes.pill)
+                    .border(2.dp, colors.lightSurface, RideakTheme.shapes.pill)
+                    .padding(horizontal = 24.dp, vertical = 14.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
     }
