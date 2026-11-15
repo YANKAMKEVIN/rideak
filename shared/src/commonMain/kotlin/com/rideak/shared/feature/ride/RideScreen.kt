@@ -1,5 +1,6 @@
 package com.rideak.shared.feature.ride
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -24,13 +26,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,6 +57,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +67,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rideak.data.recorder.GpsSignal
 import com.rideak.data.recorder.RecorderState
@@ -160,6 +165,8 @@ private fun ActiveRide(
     onMinimize: () -> Unit,
 ) {
     var confirmStop by remember { mutableStateOf(false) }
+    // Set once the rider confirmed: the ride is being saved, the summary opens when the recorder is idle.
+    var stopping by remember { mutableStateOf(false) }
     val paused = state.status == RideStatus.PAUSED
     val colors = RideakTheme.colors
 
@@ -195,6 +202,7 @@ private fun ActiveRide(
     }
     val mapOverlay: @Composable () -> Unit = {
         when {
+            stopping -> SavingPill()
             feedback != null -> FeedbackPill(feedback)
             paused -> Text(
                 "EN PAUSE",
@@ -233,7 +241,7 @@ private fun ActiveRide(
                     SpeedAndMetrics(state)
                 }
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) { mapOverlay() }
-                Controls(paused, state.spotCount, vertical = true, viewModel, onResume) { confirmStop = true }
+                Controls(paused, state.spotCount, vertical = true, enabled = !stopping, viewModel, onResume) { confirmStop = true }
             }
         } else {
             Column(Modifier.fillMaxSize()) {
@@ -254,20 +262,75 @@ private fun ActiveRide(
                         .windowInsetsPadding(WindowInsets.navigationBars)
                         .padding(vertical = RideakTheme.spacing.m),
                 ) {
-                    Controls(paused, state.spotCount, vertical = false, viewModel, onResume) { confirmStop = true }
+                    Controls(paused, state.spotCount, vertical = false, enabled = !stopping, viewModel, onResume) { confirmStop = true }
                 }
             }
         }
     }
 
     if (confirmStop) {
-        AlertDialog(
-            onDismissRequest = { confirmStop = false },
-            title = { Text("Terminer la sortie ?") },
-            text = { Text("Elle sera enregistrée dans tes sorties.") },
-            confirmButton = { TextButton(onClick = { confirmStop = false; viewModel.stop() }) { Text("Terminer") } },
-            dismissButton = { TextButton(onClick = { confirmStop = false }) { Text("Continuer") } },
+        StopConfirmation(
+            onConfirm = {
+                confirmStop = false
+                stopping = true
+                viewModel.stop()
+            },
+            onDismiss = { confirmStop = false },
         )
+    }
+}
+
+/**
+ * "Terminer la sortie ?" with two full-width buttons (72 and 64 dp) instead of the small text buttons
+ * of a standard dialog: easy to hit with gloves, at a stop, phone on the handlebar.
+ */
+@Composable
+private fun StopConfirmation(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val colors = RideakTheme.colors
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth()
+                .background(colors.surface, RideakTheme.shapes.large)
+                .padding(RideakTheme.spacing.l),
+            verticalArrangement = Arrangement.spacedBy(RideakTheme.spacing.m),
+        ) {
+            Text(
+                "Terminer la sortie ?",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text("Elle sera enregistrée dans tes sorties.", style = MaterialTheme.typography.bodyLarge, color = colors.textSecondary)
+            AdventureButton("TERMINER", onClick = onConfirm, icon = RideakIcons.Stop)
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
+                shape = RideakTheme.shapes.pill,
+                border = BorderStroke(2.dp, colors.lightSurface),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textPrimary),
+            ) {
+                Text("CONTINUER LA SORTIE", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+/** Shown between "Terminer" and the summary, so the tap visibly did something (saving can take a moment). */
+@Composable
+private fun SavingPill() {
+    val colors = RideakTheme.colors
+    Row(
+        Modifier
+            .background(colors.night.copy(alpha = 0.9f), RideakTheme.shapes.pill)
+            .border(2.dp, colors.nature, RideakTheme.shapes.pill)
+            .padding(horizontal = 24.dp, vertical = 14.dp)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CircularProgressIndicator(Modifier.size(24.dp), color = colors.nature, strokeWidth = 3.dp)
+        Text("Enregistrement de ta sortie…", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = colors.mangaWhite)
     }
 }
 
@@ -317,6 +380,7 @@ private fun Controls(
     paused: Boolean,
     spotCount: Int,
     vertical: Boolean,
+    enabled: Boolean,
     viewModel: RideViewModel,
     onResume: () -> Unit,
     onStop: () -> Unit,
@@ -324,13 +388,13 @@ private fun Controls(
     val colors = RideakTheme.colors
     val buttons: @Composable () -> Unit = {
         if (paused) {
-            RoundAction(RideakIcons.Stop, "Terminer la sortie", colors.surface, colors.action, 72.dp, outline = colors.action, onClick = onStop)
-            RoundAction(RideakIcons.Play, "Reprendre la sortie", colors.nature, colors.onAccent, 96.dp, outline = colors.night, onClick = onResume)
+            RoundAction(RideakIcons.Stop, "Terminer la sortie", colors.surface, colors.action, 72.dp, outline = colors.action, enabled = enabled, onClick = onStop)
+            RoundAction(RideakIcons.Play, "Reprendre la sortie", colors.nature, colors.onAccent, 96.dp, outline = colors.night, enabled = enabled, onClick = onResume)
         } else {
             Spacer(Modifier.size(72.dp))
-            RoundAction(RideakIcons.Pause, "Mettre en pause", colors.action, Color.White, 96.dp, outline = colors.night) { viewModel.pause() }
+            RoundAction(RideakIcons.Pause, "Mettre en pause", colors.action, Color.White, 96.dp, outline = colors.night, enabled = enabled) { viewModel.pause() }
         }
-        RoundAction(RideakIcons.Heart, "J'aime cet endroit ($spotCount spots dans cette sortie)", colors.surface, colors.action, 72.dp) {
+        RoundAction(RideakIcons.Heart, "J'aime cet endroit ($spotCount spots dans cette sortie)", colors.surface, colors.action, 72.dp, enabled = enabled) {
             viewModel.dropSpot()
         }
     }
@@ -410,13 +474,20 @@ private fun RoundAction(
     content: Color,
     size: Dp,
     outline: Color? = null,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     FilledIconButton(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier.size(size).let { if (outline != null) it.border(4.dp, outline, RideakTheme.shapes.pill) else it },
         shape = RideakTheme.shapes.pill,
-        colors = IconButtonDefaults.filledIconButtonColors(containerColor = container, contentColor = content),
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = container,
+            contentColor = content,
+            disabledContainerColor = container.copy(alpha = 0.4f),
+            disabledContentColor = content.copy(alpha = 0.5f),
+        ),
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(size * 0.4f))
     }
