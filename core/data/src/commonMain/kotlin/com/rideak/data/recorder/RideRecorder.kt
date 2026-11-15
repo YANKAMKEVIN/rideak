@@ -22,7 +22,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-enum class GpsSignal { SEARCHING, WEAK, GOOD }
+enum class GpsSignal {
+    SEARCHING, WEAK, GOOD,
+
+    /** The location stream failed (permission revoked, provider error); collection is retried. */
+    UNAVAILABLE,
+}
 
 sealed interface RecorderState {
     data object Idle : RecorderState
@@ -61,6 +66,8 @@ data class RecorderConfig(
     val tickMillis: Long = 1_000,
     val signalLostAfterMillis: Long = 10_000,
     val weakAccuracyMeters: Float = 25f,
+    /** Delay before collecting the location stream again after it failed. */
+    val locationRetryMillis: Long = 5_000,
 )
 
 /**
@@ -89,6 +96,8 @@ class RideRecorder(
         var spotCount: Int,
         var recovered: Boolean,
         var lastFixReceivedAt: Long? = null,
+        /** The location stream failed and no fix has arrived since. */
+        var locationFailed: Boolean = false,
         var lastFlushAt: Long,
         val buffer: MutableList<TrackPoint> = mutableListOf(),
         val positions: MutableList<TrackPoint> = mutableListOf(),
@@ -200,9 +209,22 @@ class RideRecorder(
     private fun startCollecting() {
         locationJob?.cancel()
         locationJob = scope.launch {
-            locationSource().locations()
-                .catch { /* Permission revoked or provider failure: surfaces as SEARCHING. */ }
-                .collect { point -> mutex.withLock { onFix(point) } }
+            while (true) {
+                var failure: Throwable? = null
+                locationSource().locations()
+                    .catch { failure = it }
+                    .collect { point -> mutex.withLock { onFix(point) } }
+                // The stream ended normally: nothing more to collect.
+                if (failure == null) break
+                // Permission revoked or provider failure: tell the rider, then try again.
+                mutex.withLock {
+                    session?.let { s ->
+                        s.locationFailed = true
+                        publish()
+                    }
+                }
+                delay(config.locationRetryMillis)
+            }
         }
     }
 
@@ -224,6 +246,7 @@ class RideRecorder(
         val s = session?.takeIf { it.recording } ?: return
         s.metrics = calculator.add(s.metrics, point)
         s.lastFixReceivedAt = clock()
+        s.locationFailed = false
         s.buffer += point
         if (drawable(point)) s.positions += point
         if (s.buffer.size >= config.flushEveryPoints) flush(RideStatus.RECORDING)
@@ -261,6 +284,7 @@ class RideRecorder(
         point.horizontalAccuracyMeters.let { it == null || it <= config.weakAccuracyMeters }
 
     private fun signal(s: Session, now: Long): GpsSignal {
+        if (s.locationFailed) return GpsSignal.UNAVAILABLE
         val receivedAt = s.lastFixReceivedAt ?: return GpsSignal.SEARCHING
         if (now - receivedAt > config.signalLostAfterMillis) return GpsSignal.SEARCHING
         val accuracy = s.metrics.lastFix?.horizontalAccuracyMeters ?: return GpsSignal.GOOD

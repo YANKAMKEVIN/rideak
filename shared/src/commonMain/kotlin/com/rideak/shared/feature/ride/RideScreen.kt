@@ -275,7 +275,8 @@ private fun ActiveRide(
 @Composable
 private fun SpeedAndMetrics(state: RecorderState.Active) {
     val colors = RideakTheme.colors
-    val searching = state.signal == GpsSignal.SEARCHING && state.metrics.currentSpeedMps == 0.0
+    val searching = (state.signal == GpsSignal.SEARCHING && state.metrics.currentSpeedMps == 0.0) ||
+        state.signal == GpsSignal.UNAVAILABLE
     val speed = if (searching) "--" else speedKmhRounded(state.metrics.currentSpeedMps).toString()
     val shadow = Shadow(Color.Black, Offset(4f, 5f), 6f)
     Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
@@ -385,6 +386,7 @@ private fun SignalChip(signal: GpsSignal) {
         GpsSignal.GOOD -> StatusChip("GPS OK", colors.nature)
         GpsSignal.WEAK -> StatusChip("Signal faible", colors.reward)
         GpsSignal.SEARCHING -> StatusChip("Recherche GPS…", colors.lightSurface)
+        GpsSignal.UNAVAILABLE -> StatusChip("GPS indisponible", colors.action)
     }
 }
 
