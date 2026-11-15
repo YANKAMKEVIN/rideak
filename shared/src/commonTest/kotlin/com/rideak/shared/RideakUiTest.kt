@@ -31,6 +31,7 @@ import com.rideak.data.PrivacyZoneRepository
 import com.rideak.exploration.PrivacySuggestion
 import com.rideak.exploration.PrivacyZone
 import kotlin.test.assertEquals
+import com.rideak.shared.feature.rides.RidesScreen
 import com.rideak.shared.feature.rides.RidesViewModel
 import com.rideak.shared.feature.places.PlacesViewModel
 import com.rideak.shared.feature.legal.LegalDocument
@@ -115,10 +116,22 @@ class RideakUiTest {
         onNodeWithText("Explorer autour de moi").assertIsDisplayed()
         onNodeWithContentDescription("Mon territoire, Ta première sortie dévoilera ta carte, prochain palier 10 zones").assertIsDisplayed()
         onNodeWithText("Sorties").performClick()
-        onNodeWithText("Aucune sortie pour l'instant. Pars à l'aventure depuis l'accueil !").assertIsDisplayed()
+        onNodeWithText("Aucune sortie pour l'instant").assertIsDisplayed()
         onNodeWithText("Profil").performClick()
         onNodeWithContentDescription("Niveau 1, Novice, 0 XP, prochain niveau à 100 XP").assertIsDisplayed()
         onNodeWithText("Sortie simulée").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun emptyRidesListOffersToStartTheFirstRide() = runComposeUiTest {
+        var started = false
+        setContent {
+            RideakTheme { RidesScreen(onOpenRide = {}, onStartRide = { started = true }, viewModel = RidesViewModel(FakeRideRepository())) }
+        }
+
+        onNodeWithText("Aucune sortie pour l'instant").assertIsDisplayed()
+        onNodeWithText("PARTIR\nÀ L'AVENTURE").assertHasClickAction().assertHeightIsAtLeast(48.dp).performClick()
+        assertTrue(started)
     }
 
     @Test

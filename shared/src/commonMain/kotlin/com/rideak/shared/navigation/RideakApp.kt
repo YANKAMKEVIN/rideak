@@ -60,7 +60,12 @@ fun RideakApp() {
             NavHost(navController, startDestination = HomeRoute, modifier = Modifier.padding(padding)) {
                 composable<HomeRoute> { HomeScreen(onRide = { navController.navigate(RideRoute) { launchSingleTop = true } }) }
                 composable<MapRoute> { WorldMapScreen() }
-                composable<RidesRoute> { RidesScreen(onOpenRide = { navController.navigate(RideSummaryRoute(it)) }) }
+                composable<RidesRoute> {
+                    RidesScreen(
+                        onOpenRide = { navController.navigate(RideSummaryRoute(it)) },
+                        onStartRide = { navController.navigate(RideRoute) { launchSingleTop = true } },
+                    )
+                }
                 composable<PlacesRoute> { PlacesScreen() }
                 composable<ProfileRoute> {
                     ProfileScreen(
