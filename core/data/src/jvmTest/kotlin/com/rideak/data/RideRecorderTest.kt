@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -170,6 +171,33 @@ class RideRecorderTest {
         recorder.awaitSignal(GpsSignal.GOOD)
         advanceTimeBy(15_000)
         recorder.awaitSignal(GpsSignal.SEARCHING)
+        recorder.stop()
+    }
+
+    @Test
+    fun aFailingLocationStreamIsReportedAndRetried() = runTest {
+        var attempts = 0
+        val recorder = RideRecorder(
+            repository = repository,
+            locationSource = {
+                LocationSource {
+                    attempts++
+                    if (attempts == 1) flow { throw IllegalStateException("permission revoked") } else fixes
+                }
+            },
+            scope = backgroundScope,
+            clock = { testScheduler.currentTime },
+            newId = { "id-${ids++}" },
+        )
+        recorder.start()
+        runCurrent()
+        recorder.awaitSignal(GpsSignal.UNAVAILABLE)
+
+        advanceTimeBy(5_001)
+        runCurrent()
+        assertEquals(2, attempts)
+        ride(seconds = 3)
+        recorder.awaitSignal(GpsSignal.GOOD)
         recorder.stop()
     }
 
