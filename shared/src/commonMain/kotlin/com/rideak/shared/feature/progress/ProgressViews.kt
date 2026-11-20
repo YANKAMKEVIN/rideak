@@ -53,6 +53,7 @@ import com.rideak.exploration.Badge
 import com.rideak.exploration.Level
 import com.rideak.exploration.PlayerStats
 import com.rideak.shared.designsystem.RideakTheme
+import com.rideak.shared.designsystem.components.GrowingBar
 import com.rideak.shared.format.formatDay
 import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
@@ -86,9 +87,7 @@ fun LevelCard(level: Level, modifier: Modifier = Modifier) {
                 Text("Niveau ${level.number} · ${level.xp} XP", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
             }
         }
-        Box(Modifier.fillMaxWidth().height(8.dp).background(c.surfaceRaised, RideakTheme.shapes.pill)) {
-            Box(Modifier.fillMaxWidth(fraction).height(8.dp).background(c.reward, RideakTheme.shapes.pill))
-        }
+        GrowingBar(fraction, c.reward, stage = level.number)
         Text(
             "Encore ${level.nextLevelXp - level.xp} XP avant le niveau ${level.number + 1}",
             style = MaterialTheme.typography.labelMedium,
