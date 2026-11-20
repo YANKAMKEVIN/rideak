@@ -37,10 +37,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import com.rideak.exploration.Place
 import com.rideak.exploration.PlaceCategory
+import com.rideak.exploration.anchor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -55,10 +59,15 @@ import com.rideak.shared.resources.card_cities
 import com.rideak.shared.resources.card_forests
 import com.rideak.shared.resources.card_parks
 import com.rideak.shared.resources.card_rivers
+import com.rideak.shared.resources.pin_city
 import com.rideak.shared.resources.pin_heart
+import com.rideak.shared.resources.pin_hills
+import com.rideak.shared.resources.pin_park
+import com.rideak.shared.resources.pin_river
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.const
@@ -78,8 +87,8 @@ import org.maplibre.spatialk.geojson.Position
 
 private enum class MapTab(val label: String) { Exploration("Exploration"), Favorites("Lieux favoris"), Rides("Mes trajets") }
 
-/** One carousel card: an illustration and what has been found in that category. */
-private data class CategoryCard(val label: String, val image: DrawableResource, val count: (WorldMapUiState) -> String)
+/** One carousel card: an illustration, what has been found in that category, and the filter it applies. */
+private data class CategoryCard(val label: String, val image: DrawableResource, val filter: MapFilter, val count: (WorldMapUiState) -> String)
 
 private fun WorldMapUiState.placesOf(vararg categories: PlaceCategory): String {
     val counters = categories.mapNotNull { places[it] }
@@ -87,11 +96,11 @@ private fun WorldMapUiState.placesOf(vararg categories: PlaceCategory): String {
 }
 
 private val categories = listOf(
-    CategoryCard("Tout", Res.drawable.card_all) { "${it.exploredCells} zones" },
-    CategoryCard("Villes", Res.drawable.card_cities) { "${it.cities.found} / ${it.cities.total}" },
-    CategoryCard("Parcs", Res.drawable.card_parks) { it.placesOf(PlaceCategory.PARK) },
-    CategoryCard("Rivières", Res.drawable.card_rivers) { it.placesOf(PlaceCategory.RIVER, PlaceCategory.LAKE) },
-    CategoryCard("Forêts", Res.drawable.card_forests) { it.placesOf(PlaceCategory.FOREST) },
+    CategoryCard("Tout", Res.drawable.card_all, MapFilter.ALL) { "${it.exploredCells} zones" },
+    CategoryCard("Villes", Res.drawable.card_cities, MapFilter.CITIES) { "${it.cities.found} / ${it.cities.total}" },
+    CategoryCard("Parcs", Res.drawable.card_parks, MapFilter.PARKS) { it.placesOf(PlaceCategory.PARK) },
+    CategoryCard("Rivières", Res.drawable.card_rivers, MapFilter.RIVERS) { it.placesOf(PlaceCategory.RIVER, PlaceCategory.LAKE) },
+    CategoryCard("Forêts", Res.drawable.card_forests, MapFilter.FORESTS) { it.placesOf(PlaceCategory.FOREST) },
 )
 
 /** "Ma carte", laid out after mockup "6. MA CARTE". */
@@ -99,6 +108,12 @@ private val categories = listOf(
 fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    val focus = koinInject<MapFocus>()
+    val focusedPlace by focus.place.collectAsStateWithLifecycle()
+    // Opened on a place from "Lieux": back to a tab where places are pinned.
+    LaunchedEffect(focusedPlace) {
+        if (focusedPlace != null && MapTab.entries[tab] == MapTab.Rides) tab = MapTab.Exploration.ordinal
+    }
     val colors = RideakTheme.colors
     Column(Modifier.fillMaxSize().background(colors.night).windowInsetsPadding(WindowInsets.statusBars)) {
         Row(Modifier.fillMaxWidth().padding(end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -116,7 +131,7 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
             if (state.loading) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else {
-                ExplorationMap(state, MapTab.entries[tab])
+                ExplorationMap(state, MapTab.entries[tab], focusedPlace, onFocused = focus::consume)
                 if (MapTab.entries[tab] == MapTab.Exploration) {
                     TerritoryCard(
                         state.exploredCells,
@@ -127,7 +142,7 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
                 }
             }
         }
-        CategoryCarousel(state)
+        CategoryCarousel(state, onSelect = viewModel::selectFilter)
     }
 }
 
@@ -161,9 +176,15 @@ private fun Tabs(selected: Int, onSelect: (Int) -> Unit) {
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
-private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
+private fun ExplorationMap(state: WorldMapUiState, tab: MapTab, focusedPlace: Place?, onFocused: () -> Unit) {
     val colors = RideakTheme.colors
     val heart = painterResource(Res.drawable.pin_heart)
+    val pinImages = mapOf(
+        PlacePin.PARK to painterResource(Res.drawable.pin_park),
+        PlacePin.RIVER to painterResource(Res.drawable.pin_river),
+        PlacePin.CITY to painterResource(Res.drawable.pin_city),
+        PlacePin.HILLS to painterResource(Res.drawable.pin_hills),
+    )
     val mapState = rememberMapState(
         baseStyle = BaseStyle.Uri(Res.getUri("files/rideak_style.json")),
         initialCameraPosition = CameraPosition(
@@ -177,6 +198,9 @@ private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
         val spots = rememberGeoJsonSource(GeoJsonData.JsonString(state.spots))
         val privacy = rememberGeoJsonSource(GeoJsonData.JsonString(state.privacyZones))
         val outlines = rememberGeoJsonSource(GeoJsonData.JsonString(state.regionOutlines))
+        val pinSources = PlacePin.entries.associateWith { pin ->
+            rememberGeoJsonSource(GeoJsonData.JsonString(state.placePins[pin] ?: GeoJson.points(emptyList())))
+        }
 
         // Exploration: the unexplored world under a veil, ridden cells clear ("ton monde se dévoile").
         FillLayer(id = "rideak-fog", source = fog, color = const(colors.night), opacity = const(0.42f), visible = tab == MapTab.Exploration)
@@ -198,6 +222,16 @@ private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
             opacity = const(if (tab == MapTab.Rides) 1f else 0.55f),
             width = const(if (tab == MapTab.Rides) 5.dp else 3.dp), cap = const(LineCap.Round), join = const(LineJoin.Round),
         )
+        // Discovered places, one illustrated pin per kind; hidden on the "Mes trajets" tab like the spots.
+        PlacePin.entries.forEach { pin ->
+            SymbolLayer(
+                id = "rideak-places-${pin.name.lowercase()}", source = pinSources.getValue(pin),
+                iconImage = image(pinImages.getValue(pin), size = DpSize(36.dp, 36.dp)),
+                iconAnchor = const(SymbolAnchor.Bottom),
+                iconAllowOverlap = const(true),
+                visible = tab != MapTab.Rides,
+            )
+        }
         SymbolLayer(
             id = "rideak-spots", source = spots,
             iconImage = image(heart, size = DpSize(34.dp, 34.dp)),
@@ -214,6 +248,13 @@ private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
             )
         }
     }
+    // After the fit above, so a place opened from "Lieux" wins: centred, close enough to see its streets.
+    LaunchedEffect(focusedPlace) {
+        val place = focusedPlace ?: return@LaunchedEffect
+        val anchor = place.anchor
+        mapState.setCameraPosition(CameraPosition(center = Position(longitude = anchor.longitude, latitude = anchor.latitude), zoom = 16.0))
+        onFocused()
+    }
     MaplibreMap(
         modifier = Modifier.fillMaxSize(),
         state = mapState,
@@ -222,8 +263,8 @@ private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
 }
 
 @Composable
-private fun CategoryCarousel(state: WorldMapUiState) {
-    // A strip of counters, not a filter: filtering the map by category comes later.
+private fun CategoryCarousel(state: WorldMapUiState, onSelect: (MapFilter) -> Unit) {
+    // Each card filters the discovered places on the map and frames them; "Tout" shows everything.
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -232,10 +273,17 @@ private fun CategoryCarousel(state: WorldMapUiState) {
             val card = categories[index]
             val count = card.count(state)
             val colors = RideakTheme.colors
+            val selected = state.filter == card.filter
             Column(
                 Modifier.width(76.dp)
                     .clip(RideakTheme.shapes.medium)
-                    .clearAndSetSemantics { contentDescription = "${card.label} : $count" },
+                    .border(if (selected) 2.dp else 0.dp, if (selected) colors.reward else Color.Transparent, RideakTheme.shapes.medium)
+                    .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(card.filter) })
+                    .clearAndSetSemantics {
+                        contentDescription = "${card.label} : $count"
+                        this.selected = selected
+                        role = Role.Tab
+                    },
             ) {
                 Box(Modifier.height(78.dp).fillMaxWidth()) {
                     Image(painterResource(card.image), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -245,7 +293,7 @@ private fun CategoryCarousel(state: WorldMapUiState) {
                     Modifier.fillMaxWidth().background(colors.night).padding(vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(card.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = colors.textPrimary, maxLines = 1)
+                    Text(card.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = if (selected) colors.reward else colors.textPrimary, maxLines = 1)
                     Text(count, style = MaterialTheme.typography.labelSmall, color = colors.textSecondary, maxLines = 1)
                 }
             }

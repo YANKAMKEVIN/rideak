@@ -48,6 +48,7 @@ fun ProfileScreen(
 ) {
     val simulation by viewModel.simulation.collectAsStateWithLifecycle()
     val stress by viewModel.mapStressTest.collectAsStateWithLifecycle()
+    val keepScreenOn by viewModel.keepScreenOn.collectAsStateWithLifecycle()
     val privacy by viewModel.privacyState.collectAsStateWithLifecycle()
     val progress by viewModel.progressState.collectAsStateWithLifecycle()
     val offline by offlineMap.state.collectAsStateWithLifecycle()
@@ -58,8 +59,20 @@ fun ProfileScreen(
     ) {
         Text("Profil", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = c.textPrimary, modifier = Modifier.semantics { heading() })
         LevelCard(progress.level)
-        BadgeGrid(progress.stats)
+        BadgeGrid(progress.stats, unlockedAt = progress.badgeDates)
 
+        Column(
+            Modifier.fillMaxWidth().background(c.surface, RideakTheme.shapes.medium).padding(RideakTheme.spacing.m),
+            verticalArrangement = Arrangement.spacedBy(RideakTheme.spacing.s),
+        ) {
+            Text("Pendant la sortie", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = c.textPrimary, modifier = Modifier.semantics { heading() })
+            SwitchRow(
+                "Écran toujours allumé",
+                "L'écran ne se met pas en veille tant que la sortie enregistre et que son écran est affiché.",
+                keepScreenOn,
+                viewModel::setKeepScreenOn,
+            )
+        }
         OfflineMapSection(offline, onDownload = offlineMap::download, onDelete = offlineMap::delete)
         PrivacySection(privacy, onProtect = viewModel::protect, onRemove = viewModel::remove)
         AboutSection(onPrivacyPolicy, onCredits, onEraseAll = viewModel::eraseAll)
@@ -70,15 +83,15 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(RideakTheme.spacing.s),
             ) {
                 Text("OUTILS DE DÉVELOPPEMENT", style = MaterialTheme.typography.labelMedium, color = c.reward)
-                DevSwitch("Sortie simulée", "Rejoue une boucle de ~3,8 km autour de Cergy à 22 km/h, sans GPS.", simulation, viewModel::setSimulation)
-                DevSwitch("Carte : 1 000 zones de test", "Ajoute une exploration synthétique pour mesurer le rendu de la carte.", stress, viewModel::setMapStressTest)
+                SwitchRow("Sortie simulée", "Rejoue une boucle de ~3,8 km autour de Cergy à 22 km/h, sans GPS.", simulation, viewModel::setSimulation)
+                SwitchRow("Carte : 1 000 zones de test", "Ajoute une exploration synthétique pour mesurer le rendu de la carte.", stress, viewModel::setMapStressTest)
             }
         }
     }
 }
 
 @Composable
-private fun DevSwitch(title: String, description: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun SwitchRow(title: String, description: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     val c = RideakTheme.colors
     Row(
         Modifier.fillMaxWidth().toggleable(checked, role = Role.Switch, onValueChange = onChange),
@@ -112,7 +125,7 @@ private fun AboutSection(onPrivacyPolicy: () -> Unit, onCredits: () -> Unit, onE
         AlertDialog(
             onDismissRequest = { confirmErase = false },
             title = { Text("Effacer toutes tes données ?") },
-            text = { Text("Tes sorties terminées, leurs traces, tes spots ❤️ et tes zones privées seront supprimés de ce téléphone. C'est définitif.") },
+            text = { Text("Tes sorties terminées, leurs traces, tes spots favoris et tes zones privées seront supprimés de ce téléphone. C'est définitif.") },
             confirmButton = {
                 TextButton(onClick = { confirmErase = false; onEraseAll() }) { Text("Tout effacer", color = c.action) }
             },

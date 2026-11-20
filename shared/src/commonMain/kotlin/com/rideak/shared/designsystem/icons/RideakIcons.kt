@@ -138,6 +138,32 @@ object RideakIcons {
         }
     }
 
+    /** Elevation loss: a slope going down to the right, with an arrow. */
+    val Descent: ImageVector by lazy {
+        stroked("Descent") {
+            moveTo(2f, 6f); lineTo(9f, 9.5f); lineTo(13f, 14f); lineTo(22f, 19f)
+            moveTo(2f, 20f); horizontalLineTo(22f)
+            moveTo(19.5f, 9f); verticalLineTo(14.5f)
+            moveTo(17f, 12.5f); lineTo(19.5f, 15f); lineTo(22f, 12.5f)
+        }
+    }
+
+    /** Back, same stroke as the rest of the set (mirrored in right-to-left layouts). */
+    val Back: ImageVector by lazy {
+        ImageVector.Builder("Back", 24.dp, 24.dp, 24f, 24f, autoMirror = true)
+            .path(
+                fill = null,
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = 2.5f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                moveTo(20f, 12f); horizontalLineTo(4.5f)
+                moveTo(10.5f, 5.5f); lineTo(4f, 12f); lineTo(10.5f, 18.5f)
+            }
+            .build()
+    }
+
     val Lightning: ImageVector by lazy {
         filled("Lightning") {
             moveTo(14f, 1.5f); lineTo(4.5f, 13.5f); horizontalLineTo(11f); lineTo(9.5f, 22.5f); lineTo(19.5f, 9.5f)

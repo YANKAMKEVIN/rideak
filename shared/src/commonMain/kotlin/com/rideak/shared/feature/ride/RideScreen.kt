@@ -83,6 +83,7 @@ import com.rideak.shared.format.speedKmhRounded
 import com.rideak.shared.permission.LocationAccess
 import com.rideak.shared.permission.LocationPermissionController
 import com.rideak.shared.permission.rememberLocationPermission
+import com.rideak.shared.platform.KeepScreenOn
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -98,18 +99,45 @@ fun RideScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val simulated by viewModel.simulated.collectAsStateWithLifecycle()
+    val keepScreenOn by viewModel.keepScreenOn.collectAsStateWithLifecycle()
     val permission = rememberLocationPermission()
     var acceptedApproximate by remember { mutableStateOf(false) }
+    val revealedCells by viewModel.revealedCells.collectAsStateWithLifecycle()
     // Big in-screen confirmation rather than a small snackbar: readable at a glance while riding.
-    var feedback by remember { mutableStateOf<String?>(null) }
+    var feedback by remember { mutableStateOf<Feedback?>(null) }
+    // "+1 ZONE !" / "NOUVEL ENDROIT : …" in the manga voice, the moment it is earned.
+    var discovery by remember { mutableStateOf<Discovery?>(null) }
+    val haptics = rememberRideHaptics()
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is RideEvent.Finished -> onFinished(event.rideId)
-                RideEvent.SpotSaved -> feedback = "❤️ Spot enregistré"
-                RideEvent.SpotNeedsFix -> feedback = "Position GPS pas encore trouvée"
+                is RideEvent.Finished -> {
+                    haptics.rideSaved()
+                    onFinished(event.rideId)
+                }
+                RideEvent.SpotSaved -> {
+                    feedback = Feedback("Spot enregistré", heart = true)
+                    haptics.spotSaved()
+                }
+                RideEvent.SpotNeedsFix -> feedback = Feedback("Position GPS pas encore trouvée")
+                is RideEvent.PlaceDiscovered -> {
+                    discovery = Discovery.Place(event.place.name)
+                    haptics.placeDiscovered()
+                }
+                is RideEvent.ZonesRevealed -> {
+                    // A new place stays on screen: the zones it came with are in the counter anyway.
+                    val shown = discovery
+                    if (shown !is Discovery.Place) discovery = Discovery.Zones(((shown as? Discovery.Zones)?.count ?: 0) + event.count)
+                    haptics.zoneRevealed()
+                }
             }
+        }
+    }
+    LaunchedEffect(discovery) {
+        if (discovery != null) {
+            delay(3_000)
+            discovery = null
         }
     }
     LaunchedEffect(feedback) {
@@ -121,6 +149,8 @@ fun RideScreen(
 
     Box(Modifier.fillMaxSize().background(RideakTheme.colors.night)) {
         val active = state as? RecorderState.Active
+        // Phone on the handlebar: the speed stays readable while recording. Released when paused or minimised.
+        KeepScreenOn(enabled = keepScreenOn && active?.status == RideStatus.RECORDING)
         val canRecord = simulated || permission.access == LocationAccess.PRECISE ||
             (permission.access == LocationAccess.APPROXIMATE && acceptedApproximate)
         when {
@@ -128,19 +158,27 @@ fun RideScreen(
                 state = active,
                 simulated = simulated,
                 feedback = feedback,
+                discovery = discovery,
+                revealedCells = revealedCells,
                 viewModel = viewModel,
                 locationOff = !simulated && !permission.servicesEnabled,
                 onOpenLocationSettings = permission.openLocationSettings,
                 onResume = {
                     // A recovered ride can be resumed before any permission was granted.
                     when {
-                        simulated || permission.access == LocationAccess.PRECISE || permission.access == LocationAccess.APPROXIMATE ->
+                        simulated || permission.access == LocationAccess.PRECISE || permission.access == LocationAccess.APPROXIMATE -> {
+                            haptics.resumed()
                             viewModel.resume()
+                        }
                         permission.access == LocationAccess.DENIED -> permission.openSettings()
                         else -> permission.request()
                     }
                 },
                 onMinimize = onMinimize,
+                onPause = {
+                    haptics.paused()
+                    viewModel.pause()
+                },
             )
             canRecord -> {
                 LaunchedEffect(Unit) { viewModel.startOnce() }
@@ -157,12 +195,15 @@ fun RideScreen(
 private fun ActiveRide(
     state: RecorderState.Active,
     simulated: Boolean,
-    feedback: String?,
+    feedback: Feedback?,
+    discovery: Discovery?,
+    revealedCells: Int,
     viewModel: RideViewModel,
     locationOff: Boolean,
     onOpenLocationSettings: () -> Unit,
     onResume: () -> Unit,
     onMinimize: () -> Unit,
+    onPause: () -> Unit,
 ) {
     var confirmStop by remember { mutableStateOf(false) }
     // Set once the rider confirmed: the ride is being saved, the summary opens when the recorder is idle.
@@ -204,6 +245,7 @@ private fun ActiveRide(
         when {
             stopping -> SavingPill()
             feedback != null -> FeedbackPill(feedback)
+            discovery != null -> DiscoveryPill(discovery)
             paused -> Text(
                 "EN PAUSE",
                 style = RideakTheme.typography.impact.copy(fontSize = 56.sp, shadow = Shadow(Color.Black, Offset(3f, 4f), 8f)),
@@ -245,10 +287,10 @@ private fun ActiveRide(
                 ) {
                     topBar()
                     notices()
-                    SpeedAndMetrics(state)
+                    SpeedAndMetrics(state, revealedCells)
                 }
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) { mapOverlay() }
-                Controls(paused, state.spotCount, vertical = true, enabled = !stopping, viewModel, onResume) { confirmStop = true }
+                Controls(paused, state.spotCount, vertical = true, enabled = !stopping, viewModel, onPause, onResume) { confirmStop = true }
             }
         } else {
             Column(Modifier.fillMaxSize()) {
@@ -260,7 +302,7 @@ private fun ActiveRide(
                 ) {
                     topBar()
                     notices()
-                    SpeedAndMetrics(state)
+                    SpeedAndMetrics(state, revealedCells)
                 }
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { mapOverlay() }
                 Box(
@@ -269,7 +311,7 @@ private fun ActiveRide(
                         .windowInsetsPadding(WindowInsets.navigationBars)
                         .padding(vertical = RideakTheme.spacing.m),
                 ) {
-                    Controls(paused, state.spotCount, vertical = false, enabled = !stopping, viewModel, onResume) { confirmStop = true }
+                    Controls(paused, state.spotCount, vertical = false, enabled = !stopping, viewModel, onPause, onResume) { confirmStop = true }
                 }
             }
         }
@@ -343,7 +385,7 @@ private fun SavingPill() {
 
 /** "⚡ 23 KM/H" in the manga voice, then distance / duration / climb with their icons (mockup layout). */
 @Composable
-private fun SpeedAndMetrics(state: RecorderState.Active) {
+private fun SpeedAndMetrics(state: RecorderState.Active, revealedCells: Int) {
     val colors = RideakTheme.colors
     val searching = (state.signal == GpsSignal.SEARCHING && state.metrics.currentSpeedMps == 0.0) ||
         state.signal == GpsSignal.UNAVAILABLE
@@ -366,6 +408,10 @@ private fun SpeedAndMetrics(state: RecorderState.Active) {
             MetricLine(RideakIcons.Stopwatch, colors.mangaWhite, formatKilometers(state.metrics.distanceMeters), "km", "Distance : ${formatKilometers(state.metrics.distanceMeters)} kilomètres")
             MetricLine(RideakIcons.Timer, colors.exploration, formatDuration(state.activeDurationMillis), "", "Durée : ${formatDuration(state.activeDurationMillis)}")
             MetricLine(RideakIcons.Mountain, colors.exploration, "${state.metrics.elevationGainMeters.toInt()}", "m", "Dénivelé positif : ${state.metrics.elevationGainMeters.toInt()} mètres")
+            MetricLine(
+                RideakIcons.Leaf, colors.nature, "$revealedCells", if (revealedCells == 1) "zone" else "zones",
+                "$revealedCells ${if (revealedCells == 1) "zone dévoilée" else "zones dévoilées"} pendant cette sortie",
+            )
         }
     }
 }
@@ -390,6 +436,7 @@ private fun Controls(
     vertical: Boolean,
     enabled: Boolean,
     viewModel: RideViewModel,
+    onPause: () -> Unit,
     onResume: () -> Unit,
     onStop: () -> Unit,
 ) {
@@ -400,7 +447,7 @@ private fun Controls(
             RoundAction(RideakIcons.Play, "Reprendre la sortie", colors.nature, colors.onAccent, 96.dp, outline = colors.night, enabled = enabled, onClick = onResume)
         } else {
             Spacer(Modifier.size(72.dp))
-            RoundAction(RideakIcons.Pause, "Mettre en pause", colors.action, Color.White, 96.dp, outline = colors.night, enabled = enabled) { viewModel.pause() }
+            RoundAction(RideakIcons.Pause, "Mettre en pause", colors.action, Color.White, 96.dp, outline = colors.night, enabled = enabled, onClick = onPause)
         }
         RoundAction(RideakIcons.Heart, "J'aime cet endroit ($spotCount spots dans cette sortie)", colors.surface, colors.action, 72.dp, enabled = enabled) {
             viewModel.dropSpot()
@@ -417,20 +464,63 @@ private fun Controls(
     }
 }
 
+/** Confirmation over the map; [heart]: drawn RIDEAK heart before the text (no emoji). */
+private data class Feedback(val text: String, val heart: Boolean = false)
+
 @Composable
-private fun FeedbackPill(text: String) {
+private fun FeedbackPill(feedback: Feedback) {
     val colors = RideakTheme.colors
-    Text(
-        text,
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = colors.mangaWhite,
-        textAlign = TextAlign.Center,
-        modifier = Modifier
+    Row(
+        Modifier
             .background(colors.night.copy(alpha = 0.9f), RideakTheme.shapes.pill)
             .border(2.dp, colors.action, RideakTheme.shapes.pill)
             .padding(horizontal = 24.dp, vertical = 14.dp)
-            .semantics { liveRegion = LiveRegionMode.Polite },
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (feedback.heart) Icon(RideakIcons.Heart, contentDescription = null, tint = colors.action, modifier = Modifier.size(28.dp))
+        Text(
+            feedback.text,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.mangaWhite,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/** What the ride just revealed, shown for a few seconds over the map. */
+private sealed interface Discovery {
+    data class Zones(val count: Int) : Discovery
+    data class Place(val name: String) : Discovery
+}
+
+@Composable
+private fun DiscoveryPill(discovery: Discovery) {
+    val colors = RideakTheme.colors
+    val text = when (discovery) {
+        is Discovery.Zones -> if (discovery.count == 1) "+1 ZONE !" else "+${discovery.count} ZONES !"
+        is Discovery.Place -> "NOUVEL ENDROIT : ${discovery.name.uppercase()}"
+    }
+    Text(
+        text,
+        style = RideakTheme.typography.impact.copy(fontSize = 32.sp, lineHeight = 36.sp, shadow = Shadow(Color.Black, Offset(2f, 3f), 4f)),
+        color = colors.reward,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .padding(horizontal = RideakTheme.spacing.m)
+            .graphicsLayer(rotationZ = -3f)
+            .background(colors.night.copy(alpha = 0.92f), RideakTheme.shapes.pill)
+            .border(3.dp, colors.reward, RideakTheme.shapes.pill)
+            .padding(horizontal = 24.dp, vertical = 12.dp)
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = when (discovery) {
+                    is Discovery.Zones -> if (discovery.count == 1) "Une zone dévoilée" else "${discovery.count} zones dévoilées"
+                    is Discovery.Place -> "Nouvel endroit : ${discovery.name}"
+                }
+            },
     )
 }
 

@@ -17,7 +17,8 @@ import kotlinx.serialization.Serializable
 
 // Full-screen destinations (no bottom bar). Discovery arrives with its feature.
 @Serializable data object RideRoute
-@Serializable data class RideSummaryRoute(val rideId: String)
+/** [fresh]: opened right after the ride ended, so its rewards are celebrated (not when reopened from the list). */
+@Serializable data class RideSummaryRoute(val rideId: String, val fresh: Boolean = false)
 @Serializable data object PrivacyPolicyRoute
 @Serializable data object CreditsRoute
 

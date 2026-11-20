@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.rideak.data.RideRepository
 import com.rideak.exploration.Badge
 import com.rideak.exploration.ExplorationEngine
+import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.anchor
+import com.rideak.exploration.distanceTo
 import com.rideak.exploration.Place
 import com.rideak.exploration.PlaceDiscoverer
 import com.rideak.exploration.Progression
@@ -41,7 +44,16 @@ data class RideSummaryUiState(
     /** XP this ride earned, and badges it unlocked, compared with the rides before it. */
     val xpGained: Int = 0,
     val newBadges: List<Badge> = emptyList(),
+    /** Closest known place to each spot (same order as [spots]), null when none is near. */
+    val spotPlaces: List<Place?> = emptyList(),
 )
+
+/** The known place closest to [point], if one is within [maxMeters] of its pin. */
+internal fun nearestPlace(point: GeoPoint, places: List<Place>, maxMeters: Double = 300.0): Place? =
+    places.map { it to point.distanceTo(it.anchor) }
+        .filter { (_, meters) -> meters <= maxMeters }
+        .minByOrNull { (_, meters) -> meters }
+        ?.first
 
 class RideSummaryViewModel(rideId: String, repository: RideRepository, regions: RegionSource) : ViewModel() {
     private val _state = MutableStateFlow(RideSummaryUiState())
@@ -75,6 +87,7 @@ class RideSummaryViewModel(rideId: String, repository: RideRepository, regions: 
                         .let { ids -> places.filter { it.id in ids } },
                     xpGained = Progression.xp(statsAfter) - Progression.xp(statsBefore),
                     newBadges = Badge.newlyUnlocked(statsBefore, statsAfter),
+                    spotPlaces = spots.map { nearestPlace(it.position, places) },
                 )
             }
         }

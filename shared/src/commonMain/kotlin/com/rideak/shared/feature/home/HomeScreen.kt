@@ -3,6 +3,7 @@ package com.rideak.shared.feature.home
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,8 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +33,9 @@ import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import com.rideak.shared.feature.map.Counter
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import com.rideak.shared.resources.Res
@@ -45,6 +47,7 @@ import com.rideak.shared.resources.hero_home
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -65,18 +68,23 @@ import com.rideak.shared.designsystem.icons.RideakIcons
 
 /** Home, laid out after mockup "2. HOME". */
 @Composable
-fun HomeScreen(onRide: () -> Unit, viewModel: HomeViewModel = koinViewModel()) {
+fun HomeScreen(
+    onRide: () -> Unit,
+    onOpenMap: () -> Unit = {},
+    onOpenCategory: (HomeCategory) -> Unit = {},
+    viewModel: HomeViewModel = koinViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val spacing = RideakTheme.spacing
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Hero()
         Column(
-            // The search field overlaps the faded bottom of the illustration, as in the mockup.
+            // The map shortcut overlaps the faded bottom of the illustration, like the mockup's search field.
             modifier = Modifier.padding(horizontal = spacing.m).offset(y = (-36).dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SearchField()
-            CategoryRow()
+            MapShortcut(onOpenMap)
+            CategoryRow(state.categories, onOpenCategory)
             TerritoryCard(state.exploredCells, territory = state.territory)
             StatsRow(state)
             val active = state.activeRide
@@ -133,40 +141,55 @@ private fun Hero() {
     }
 }
 
+/** Shortcut to "Ma carte" where the mockup had a search field (there is no place search yet). */
 @Composable
-private fun SearchField() {
-    // Visual only for now: place search arrives with the map.
+private fun MapShortcut(onClick: () -> Unit) {
     val colors = RideakTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
-            .background(colors.surface, RideakTheme.shapes.pill)
+            .clip(RideakTheme.shapes.pill)
+            .background(colors.surface)
             .border(1.dp, colors.lightSurface.copy(alpha = 0.3f), RideakTheme.shapes.pill)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = RideakTheme.spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(Icons.Filled.Search, contentDescription = null, tint = colors.textPrimary)
-        Text("Explorer autour de moi", style = MaterialTheme.typography.bodyLarge, color = colors.textSecondary)
+        Icon(RideakIcons.Map, contentDescription = null, tint = colors.exploration)
+        Text("Voir ma carte", style = MaterialTheme.typography.bodyLarge, color = colors.textPrimary, modifier = Modifier.weight(1f))
+        Text("›", style = MaterialTheme.typography.titleLarge, color = colors.textSecondary)
     }
 }
 
 @Composable
-private fun CategoryRow() {
+private fun CategoryRow(counters: Map<HomeCategory, Counter>, onOpen: (HomeCategory) -> Unit) {
     val c = RideakTheme.colors
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         // Illustrated icons generated from the board (prompt in docs/assets/category_icons.prompt.txt).
-        Category("Parcs", Res.drawable.category_parks, c.nature)
-        Category("Rivières", Res.drawable.category_rivers, c.exploration)
-        Category("Villes", Res.drawable.category_cities, c.action)
-        Category("Collines", Res.drawable.category_hills, c.reward)
+        Category(HomeCategory.PARKS, Res.drawable.category_parks, c.nature, counters, onOpen)
+        Category(HomeCategory.RIVERS, Res.drawable.category_rivers, c.exploration, counters, onOpen)
+        Category(HomeCategory.CITIES, Res.drawable.category_cities, c.action, counters, onOpen)
+        Category(HomeCategory.HILLS, Res.drawable.category_hills, c.reward, counters, onOpen)
     }
 }
 
+/** Opens "Lieux" on this category; shows how many of its places were found. */
 @Composable
-private fun Category(label: String, icon: DrawableResource, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+private fun Category(category: HomeCategory, icon: DrawableResource, color: Color, counters: Map<HomeCategory, Counter>, onOpen: (HomeCategory) -> Unit) {
+    val label = category.label
+    val counter = counters[category]
+    Column(
+        Modifier.clip(RideakTheme.shapes.medium)
+            .clickable(role = Role.Button, onClickLabel = "Voir les lieux") { onOpen(category) }
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .semantics(mergeDescendants = true) {
+                if (counter != null) contentDescription = "$label : ${counter.found} sur ${counter.total} découverts"
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         Box(
             Modifier.size(56.dp)
                 .background(RideakTheme.colors.surface, RideakTheme.shapes.pill)
@@ -176,6 +199,9 @@ private fun Category(label: String, icon: DrawableResource, color: Color) {
             Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(36.dp))
         }
         Text(label, style = MaterialTheme.typography.labelLarge, color = RideakTheme.colors.textPrimary)
+        if (counter != null) {
+            Text("${counter.found} / ${counter.total}", style = MaterialTheme.typography.labelSmall, color = RideakTheme.colors.textSecondary)
+        }
     }
 }
 
@@ -188,18 +214,22 @@ private fun StatsRow(state: HomeUiState) {
         StatDivider()
         Stat("${state.rideCount}", "sorties", c.nature, "${state.rideCount} sorties", Modifier.weight(1f))
         StatDivider()
-        Stat("${state.spotCount}", "spots ❤️", c.action, "${state.spotCount} spots favoris", Modifier.weight(1f))
+        Stat("${state.spotCount}", "spots", c.action, "${state.spotCount} spots favoris", Modifier.weight(1f), labelIcon = RideakIcons.Heart)
     }
 }
 
 @Composable
-private fun Stat(value: String, label: String, color: Color, spoken: String, modifier: Modifier) {
+private fun Stat(value: String, label: String, color: Color, spoken: String, modifier: Modifier, labelIcon: ImageVector? = null) {
     Column(
         modifier.clearAndSetSemantics { contentDescription = spoken },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = color)
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = RideakTheme.colors.textPrimary, textAlign = TextAlign.Center)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = RideakTheme.colors.textPrimary, textAlign = TextAlign.Center)
+            // Drawn, not an emoji: the same red heart on every phone.
+            if (labelIcon != null) Icon(labelIcon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+        }
     }
 }
 

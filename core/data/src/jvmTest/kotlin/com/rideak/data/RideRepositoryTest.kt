@@ -74,4 +74,16 @@ class RideRepositoryTest {
         assertTrue(repository.track(RideId("done")).isEmpty(), "points cascade")
         assertEquals(1, repository.track(RideId("current")).size)
     }
+
+    @Test
+    fun deletingOneRideKeepsTheOthers() = runTest {
+        ride("old", startedAt = 1_000)
+        ride("kept", startedAt = 2_000)
+        ride("current", startedAt = 3_000, status = RideStatus.RECORDING)
+        repository.deleteFinishedRide(RideId("old"))
+        repository.deleteFinishedRide(RideId("current"))
+        assertTrue(repository.track(RideId("old")).isEmpty(), "points cascade")
+        assertEquals(1, repository.track(RideId("kept")).size)
+        assertEquals(1, repository.track(RideId("current")).size, "a ride in progress is never deleted")
+    }
 }

@@ -1,0 +1,11 @@
+<resources>
+    <!--
+      Android 12+ always shows the system splash screen (an icon on a background): the bike icon on
+      Night. The plain Night window then avoids flashing the wordmark between the splash and the app.
+    -->
+    <style name="Theme.Rideak" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/rideak_night</item>
+        <item name="android:windowSplashScreenBackground">@color/rideak_night</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+    </style>
+</resources>

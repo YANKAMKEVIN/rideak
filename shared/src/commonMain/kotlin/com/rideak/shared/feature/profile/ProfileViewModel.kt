@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.rideak.data.PrivacyZoneRepository
 import com.rideak.data.RideRepository
 import com.rideak.data.location.LocationSourceSelector
+import com.rideak.exploration.Badge
 import com.rideak.exploration.Level
 import com.rideak.exploration.PlayerStats
 import com.rideak.exploration.PrivacySuggestion
@@ -13,8 +14,10 @@ import com.rideak.exploration.Progression
 import com.rideak.exploration.suggestPrivacySpots
 import com.rideak.shared.di.AppInfo
 import com.rideak.shared.di.DeveloperSettings
+import com.rideak.shared.feature.progress.badgeUnlockDates
 import com.rideak.shared.feature.progress.playerStats
 import com.rideak.shared.feature.territory.RegionSource
+import com.rideak.shared.settings.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +27,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-data class ProgressUiState(val stats: PlayerStats = PlayerStats(), val level: Level = Progression.level(0))
+data class ProgressUiState(
+    val stats: PlayerStats = PlayerStats(),
+    val level: Level = Progression.level(0),
+    /** When each unlocked badge was earned. */
+    val badgeDates: Map<Badge, Long> = emptyMap(),
+)
 
 data class PrivacyUiState(
     val zones: List<PrivacyZone> = emptyList(),
@@ -39,22 +47,28 @@ class ProfileViewModel(
     private val rides: RideRepository,
     private val privacy: PrivacyZoneRepository,
     regions: RegionSource,
+    private val settings: AppSettings,
 ) : ViewModel() {
     val showDeveloperTools = appInfo.isDebug
     val simulation: StateFlow<Boolean> = selector.useSimulation
 
     fun setSimulation(enabled: Boolean) = selector.setUseSimulation(enabled)
 
+    val keepScreenOn: StateFlow<Boolean> = settings.keepScreenOn
+    fun setKeepScreenOn(enabled: Boolean) = settings.setKeepScreenOn(enabled)
+
     val mapStressTest: StateFlow<Boolean> = developer.mapStressTest
     fun setMapStressTest(enabled: Boolean) { developer.mapStressTest.value = enabled }
 
     /** Level and badges, derived from every finished ride (nothing stored). */
     val progressState: StateFlow<ProgressUiState> = rides.observeFinishedRides().map { finished ->
-        val segments = rides.finishedSegments()
+        val tracks = finished.map { it to rides.track(it.id) }
         val packs = regions.packs()
         withContext(Dispatchers.Default) {
-            val stats = playerStats(finished, segments, packs.map { it.region }, packs.flatMap { it.places })
-            ProgressUiState(stats, Progression.level(Progression.xp(stats)))
+            val regionList = packs.map { it.region }
+            val places = packs.flatMap { it.places }
+            val stats = playerStats(finished, tracks.flatMap { it.second }, regionList, places)
+            ProgressUiState(stats, Progression.level(Progression.xp(stats)), badgeUnlockDates(tracks, regionList, places))
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressUiState())
 

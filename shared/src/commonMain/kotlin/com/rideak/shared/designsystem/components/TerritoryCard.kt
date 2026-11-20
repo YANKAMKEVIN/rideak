@@ -42,6 +42,7 @@ fun TerritoryCard(exploredCells: Int, modifier: Modifier = Modifier, territory: 
     val badge: String
     val fraction: Float
     val description: String
+    val stage: Int
     if (territory != null) {
         val percent = formatPercent(territory.fraction)
         title = territory.name
@@ -49,6 +50,8 @@ fun TerritoryCard(exploredCells: Int, modifier: Modifier = Modifier, territory: 
         badge = percent
         fraction = territory.fraction.coerceIn(0f, 1f)
         description = "Mon territoire, ${territory.name} explorée à $percent, $subtitle"
+        // Every 10 % of the region is a step worth a flash.
+        stage = floor(territory.fraction * 10).toInt()
     } else {
         val next = milestones.firstOrNull { it > exploredCells } ?: (exploredCells + 1)
         val previous = milestones.lastOrNull { it <= exploredCells } ?: 0
@@ -57,6 +60,7 @@ fun TerritoryCard(exploredCells: Int, modifier: Modifier = Modifier, territory: 
         badge = "$exploredCells / $next"
         fraction = ((exploredCells - previous).toFloat() / (next - previous)).coerceIn(0f, 1f)
         description = "Mon territoire, $subtitle, prochain palier $next zones"
+        stage = milestones.count { it <= exploredCells }
     }
     Column(
         modifier = modifier
@@ -83,9 +87,7 @@ fun TerritoryCard(exploredCells: Int, modifier: Modifier = Modifier, territory: 
             }
             Text(badge, style = MaterialTheme.typography.labelLarge, color = colors.nature)
         }
-        Box(Modifier.fillMaxWidth().height(8.dp).background(colors.surfaceRaised, RideakTheme.shapes.pill)) {
-            Box(Modifier.fillMaxWidth(fraction).height(8.dp).background(colors.nature, RideakTheme.shapes.pill))
-        }
+        GrowingBar(fraction, colors.nature, stage)
     }
 }
 

@@ -32,4 +32,10 @@ class FormatTest {
         assertEquals("12,3 Mo", formatBytes(12_340_000))
         assertEquals("1,0 Mo", formatBytes(1_000_000))
     }
+
+    @Test
+    fun dayInFrench() {
+        // Noon UTC on 11 October 2026: the same day in every European time zone.
+        assertEquals("11 octobre", formatDay(1_791_720_000_000))
+    }
 }

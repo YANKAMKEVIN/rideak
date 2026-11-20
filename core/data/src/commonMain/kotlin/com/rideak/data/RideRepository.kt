@@ -36,6 +36,8 @@ interface RideRepository {
     suspend fun finishedEndpoints(): List<GeoPoint>
     /** Right to erasure: every finished ride with its points and spots. */
     suspend fun deleteFinishedRides()
+    /** One finished ride with its points and spots (a ride being recorded is never deleted). */
+    suspend fun deleteFinishedRide(rideId: RideId)
 }
 
 class RoomRideRepository(private val dao: RideDao) : RideRepository {
@@ -91,6 +93,8 @@ class RoomRideRepository(private val dao: RideDao) : RideRepository {
         dao.finishedPointsBefore(startedAtEpochMillis).toSegments()
 
     override suspend fun deleteFinishedRides() = dao.deleteFinishedRides()
+
+    override suspend fun deleteFinishedRide(rideId: RideId) = dao.deleteFinishedRide(rideId.value)
 
     override suspend fun finishedEndpoints(): List<GeoPoint> =
         dao.finishedPoints().groupBy { it.rideId }.values.flatMap { points ->

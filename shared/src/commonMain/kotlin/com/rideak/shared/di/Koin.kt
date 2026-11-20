@@ -6,9 +6,11 @@ import com.rideak.data.platformDataModule
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.shared.feature.home.HomeViewModel
 import com.rideak.shared.feature.map.MapLibreOfflineMapStore
+import com.rideak.shared.feature.map.MapFocus
 import com.rideak.shared.feature.map.MapViewModel
 import com.rideak.shared.feature.map.OfflineMapStore
 import com.rideak.shared.feature.map.OfflineMapViewModel
+import com.rideak.shared.feature.places.PlacesFocus
 import com.rideak.shared.feature.places.PlacesViewModel
 import com.rideak.shared.feature.profile.ProfileViewModel
 import com.rideak.shared.feature.ride.RideViewModel
@@ -16,6 +18,8 @@ import com.rideak.shared.feature.rides.RidesViewModel
 import com.rideak.shared.feature.summary.RideSummaryViewModel
 import com.rideak.shared.feature.territory.BundledRegions
 import com.rideak.shared.feature.territory.RegionSource
+import com.rideak.shared.settings.AppSettings
+import com.rideak.shared.settings.platformSettingsModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.core.context.startKoin
@@ -35,6 +39,9 @@ class DeveloperSettings {
 
 private val uiModule = module {
     single { DeveloperSettings() }
+    single { AppSettings(get()) }
+    single { PlacesFocus() }
+    single { MapFocus() }
     single<RegionSource> { BundledRegions() }
     single<OfflineMapStore> { MapLibreOfflineMapStore() }
     viewModelOf(::OfflineMapViewModel)
@@ -51,7 +58,7 @@ private val uiModule = module {
 fun initKoin(platform: KoinAppDeclaration = {}) {
     val koin = startKoin {
         platform()
-        modules(dataModule, platformDataModule, uiModule)
+        modules(dataModule, platformDataModule, platformSettingsModule, uiModule)
     }.koin
     // A ride left unfinished by a killed process comes back paused.
     koin.get<CoroutineScope>(ApplicationScope).launch { koin.get<RideRecorder>().recoverUnfinished() }

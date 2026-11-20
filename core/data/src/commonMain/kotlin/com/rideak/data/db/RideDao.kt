@@ -24,6 +24,10 @@ interface RideDao {
     @Query("DELETE FROM rides WHERE status = 'FINISHED'")
     suspend fun deleteFinishedRides()
 
+    /** One finished ride, with its points and spots (ON DELETE CASCADE). */
+    @Query("DELETE FROM rides WHERE id = :id AND status = 'FINISHED'")
+    suspend fun deleteFinishedRide(id: String)
+
     @Query("SELECT r.*, (SELECT COUNT(*) FROM spots s WHERE s.rideId = r.id) AS spotCount FROM rides r WHERE r.id = :id")
     suspend fun ride(id: String): RideWithSpotCount?
 

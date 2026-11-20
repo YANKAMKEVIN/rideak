@@ -11,8 +11,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import com.rideak.shared.designsystem.icons.RideakIcons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,7 +61,7 @@ fun LegalDocument(blocks: List<MarkdownBlock>, onBack: () -> Unit) {
             when (block) {
                 is MarkdownBlock.Title -> Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = c.textPrimary)
+                        Icon(RideakIcons.Back, contentDescription = "Retour", tint = c.textPrimary)
                     }
                     Text(block.text, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textPrimary, modifier = Modifier.semantics { heading() })
                 }

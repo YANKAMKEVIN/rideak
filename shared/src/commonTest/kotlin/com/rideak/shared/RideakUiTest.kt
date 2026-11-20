@@ -23,6 +23,8 @@ import com.rideak.data.location.LocationSourceSelector
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.shared.di.AppInfo
 import com.rideak.shared.di.DeveloperSettings
+import com.rideak.shared.settings.AppSettings
+import com.rideak.shared.settings.InMemorySettingsStorage
 import com.rideak.shared.feature.home.HomeViewModel
 import com.rideak.shared.feature.profile.ProfileViewModel
 import com.rideak.shared.feature.profile.PrivacySection
@@ -34,6 +36,7 @@ import kotlin.test.assertEquals
 import com.rideak.shared.feature.rides.RidesScreen
 import com.rideak.shared.feature.rides.RidesViewModel
 import com.rideak.shared.feature.places.PlacesViewModel
+import com.rideak.shared.feature.places.PlacesFocus
 import com.rideak.shared.feature.legal.LegalDocument
 import com.rideak.shared.feature.legal.parseMarkdown
 import com.rideak.shared.feature.map.OfflineMapSection
@@ -42,6 +45,7 @@ import com.rideak.shared.feature.map.OfflineMapStore
 import com.rideak.shared.feature.map.OfflineMapUiState
 import com.rideak.shared.feature.map.OfflineMapViewModel
 import com.rideak.shared.feature.places.NewPlaces
+import com.rideak.shared.feature.onboarding.OnboardingScreen
 import com.rideak.shared.feature.places.PlaceSection
 import com.rideak.shared.feature.places.PlacesContent
 import com.rideak.shared.feature.places.PlacesUiState
@@ -85,6 +89,8 @@ class RideakUiTest {
                     single { RideRecorder(get(), { noGps }, MainScope(), { 0L }, { "id" }) }
                     single { AppInfo(isDebug = true) }
                     single { DeveloperSettings() }
+                    single { PlacesFocus() }
+                    single { AppSettings(InMemorySettingsStorage(mapOf(AppSettings.ONBOARDING_DONE to true))) }
                     single<RegionSource> { RegionSource { emptyList() } }
                     viewModelOf(::PlacesViewModel)
                     single<OfflineMapStore> { FakeOfflineMapStore() }
@@ -113,13 +119,29 @@ class RideakUiTest {
     fun bottomBarNavigatesBetweenTopLevelDestinations() = runComposeUiTest {
         setContent { RideakApp() }
 
-        onNodeWithText("Explorer autour de moi").assertIsDisplayed()
+        onNodeWithText("Voir ma carte").assertHasClickAction()
         onNodeWithContentDescription("Mon territoire, Ta première sortie dévoilera ta carte, prochain palier 10 zones").assertIsDisplayed()
         onNodeWithText("Sorties").performClick()
         onNodeWithText("Aucune sortie pour l'instant").assertIsDisplayed()
         onNodeWithText("Profil").performClick()
         onNodeWithContentDescription("Niveau 1, Novice, 0 XP, prochain niveau à 100 XP").assertIsDisplayed()
         onNodeWithText("Sortie simulée").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun onboardingWalksThroughThreePanesThenStartsTheFirstRide() = runComposeUiTest {
+        var started = false
+        var skipped = false
+        setContent { RideakTheme { OnboardingScreen(onStartRide = { started = true }, onSkip = { skipped = true }) } }
+
+        onNodeWithText("EXPLORE TON MONDE À VÉLO").assertIsDisplayed()
+        onNodeWithText("SUIVANT").performClick()
+        onNodeWithText("DÉCOUVRE LES LIEUX CACHÉS").assertIsDisplayed()
+        onNodeWithText("SUIVANT").performClick()
+        onNodeWithText("TES TRACES RESTENT SUR TON TÉLÉPHONE").assertIsDisplayed()
+        onNodeWithText("PARTIR\nÀ L'AVENTURE").assertHeightIsAtLeast(48.dp).performClick()
+        assertTrue(started)
+        assertTrue(!skipped)
     }
 
     @Test
@@ -204,7 +226,9 @@ class RideakUiTest {
         onNodeWithContentDescription("Niveau 2, Éclaireur, 180 XP, prochain niveau à 300 XP").assertIsDisplayed()
         onNodeWithText("2 / 6").assertIsDisplayed()
         onNodeWithContentDescription("Badge 10 km, débloqué").assertIsDisplayed()
-        onNodeWithContentDescription("Badge Explorateur, verrouillé, Explore 100 zones, 8 sur 100").assertIsDisplayed()
+        onNodeWithContentDescription("Badge Explorateur, verrouillé, Explore 100 zones, 8 sur 100").assertIsDisplayed().performClick()
+        onNodeWithText("Explore 100 zones").assertIsDisplayed()
+        onNodeWithText("8 / 100").assertIsDisplayed()
     }
 
     @Test
