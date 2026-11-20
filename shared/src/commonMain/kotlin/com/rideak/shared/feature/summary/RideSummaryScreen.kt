@@ -29,9 +29,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -121,7 +118,7 @@ private fun Summary(state: RideSummaryUiState, onBack: () -> Unit, fresh: Boolea
         // Header: back, round thumbnail, title + time range.
         Row(Modifier.padding(horizontal = spacing.s, vertical = spacing.s), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = c.textPrimary)
+                Icon(RideakIcons.Back, contentDescription = "Retour", tint = c.textPrimary)
             }
             Box(
                 Modifier.size(52.dp).clip(RideakTheme.shapes.pill)
@@ -192,7 +189,7 @@ private fun StatsPanel(state: RideSummaryUiState) {
     val right = listOf(
         Stat(RideakIcons.Timer, c.exploration, formatDurationShort(ride.activeDurationMillis), "Durée"),
         Stat(RideakIcons.Speedometer, c.action, "${formatKmh(ride.maxSpeedMps)} km/h", "Max"),
-        Stat(Icons.Filled.LocationOn, c.nature, "${state.metrics.elevationLossMeters.toInt()} m", "Dénivelé -"),
+        Stat(RideakIcons.Descent, c.nature, "${state.metrics.elevationLossMeters.toInt()} m", "Dénivelé -"),
     )
     Row(
         Modifier.fillMaxWidth().height(IntrinsicSize.Min)
@@ -237,7 +234,11 @@ private fun StatColumn(stats: List<Stat>, modifier: Modifier) {
 private fun SpotsList(state: RideSummaryUiState) {
     val c = RideakTheme.colors
     if (state.spots.isEmpty()) {
-        Text("Aucun spot ❤️ pendant cette sortie.", style = MaterialTheme.typography.bodyLarge, color = c.textSecondary)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(RideakIcons.Heart, contentDescription = null, tint = c.action, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Aucun spot pendant cette sortie.", style = MaterialTheme.typography.bodyLarge, color = c.textSecondary)
+        }
         return
     }
     state.spots.forEachIndexed { i, spot ->

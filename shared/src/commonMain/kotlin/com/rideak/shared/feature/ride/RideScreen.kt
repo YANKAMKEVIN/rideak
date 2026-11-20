@@ -104,7 +104,7 @@ fun RideScreen(
     var acceptedApproximate by remember { mutableStateOf(false) }
     val revealedCells by viewModel.revealedCells.collectAsStateWithLifecycle()
     // Big in-screen confirmation rather than a small snackbar: readable at a glance while riding.
-    var feedback by remember { mutableStateOf<String?>(null) }
+    var feedback by remember { mutableStateOf<Feedback?>(null) }
     // "+1 ZONE !" / "NOUVEL ENDROIT : …" in the manga voice, the moment it is earned.
     var discovery by remember { mutableStateOf<Discovery?>(null) }
     val haptics = rememberRideHaptics()
@@ -117,10 +117,10 @@ fun RideScreen(
                     onFinished(event.rideId)
                 }
                 RideEvent.SpotSaved -> {
-                    feedback = "❤️ Spot enregistré"
+                    feedback = Feedback("Spot enregistré", heart = true)
                     haptics.spotSaved()
                 }
-                RideEvent.SpotNeedsFix -> feedback = "Position GPS pas encore trouvée"
+                RideEvent.SpotNeedsFix -> feedback = Feedback("Position GPS pas encore trouvée")
                 is RideEvent.PlaceDiscovered -> {
                     discovery = Discovery.Place(event.place.name)
                     haptics.placeDiscovered()
@@ -195,7 +195,7 @@ fun RideScreen(
 private fun ActiveRide(
     state: RecorderState.Active,
     simulated: Boolean,
-    feedback: String?,
+    feedback: Feedback?,
     discovery: Discovery?,
     revealedCells: Int,
     viewModel: RideViewModel,
@@ -464,21 +464,30 @@ private fun Controls(
     }
 }
 
+/** Confirmation over the map; [heart]: drawn RIDEAK heart before the text (no emoji). */
+private data class Feedback(val text: String, val heart: Boolean = false)
+
 @Composable
-private fun FeedbackPill(text: String) {
+private fun FeedbackPill(feedback: Feedback) {
     val colors = RideakTheme.colors
-    Text(
-        text,
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = colors.mangaWhite,
-        textAlign = TextAlign.Center,
-        modifier = Modifier
+    Row(
+        Modifier
             .background(colors.night.copy(alpha = 0.9f), RideakTheme.shapes.pill)
             .border(2.dp, colors.action, RideakTheme.shapes.pill)
             .padding(horizontal = 24.dp, vertical = 14.dp)
-            .semantics { liveRegion = LiveRegionMode.Polite },
-    )
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (feedback.heart) Icon(RideakIcons.Heart, contentDescription = null, tint = colors.action, modifier = Modifier.size(28.dp))
+        Text(
+            feedback.text,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.mangaWhite,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 /** What the ride just revealed, shown for a few seconds over the map. */

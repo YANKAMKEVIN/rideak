@@ -47,6 +47,7 @@ import com.rideak.shared.resources.hero_home
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -213,18 +214,22 @@ private fun StatsRow(state: HomeUiState) {
         StatDivider()
         Stat("${state.rideCount}", "sorties", c.nature, "${state.rideCount} sorties", Modifier.weight(1f))
         StatDivider()
-        Stat("${state.spotCount}", "spots ❤️", c.action, "${state.spotCount} spots favoris", Modifier.weight(1f))
+        Stat("${state.spotCount}", "spots", c.action, "${state.spotCount} spots favoris", Modifier.weight(1f), labelIcon = RideakIcons.Heart)
     }
 }
 
 @Composable
-private fun Stat(value: String, label: String, color: Color, spoken: String, modifier: Modifier) {
+private fun Stat(value: String, label: String, color: Color, spoken: String, modifier: Modifier, labelIcon: ImageVector? = null) {
     Column(
         modifier.clearAndSetSemantics { contentDescription = spoken },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = color)
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = RideakTheme.colors.textPrimary, textAlign = TextAlign.Center)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = RideakTheme.colors.textPrimary, textAlign = TextAlign.Center)
+            // Drawn, not an emoji: the same red heart on every phone.
+            if (labelIcon != null) Icon(labelIcon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+        }
     }
 }
 

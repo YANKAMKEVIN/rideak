@@ -125,7 +125,7 @@ private fun AboutSection(onPrivacyPolicy: () -> Unit, onCredits: () -> Unit, onE
         AlertDialog(
             onDismissRequest = { confirmErase = false },
             title = { Text("Effacer toutes tes données ?") },
-            text = { Text("Tes sorties terminées, leurs traces, tes spots ❤️ et tes zones privées seront supprimés de ce téléphone. C'est définitif.") },
+            text = { Text("Tes sorties terminées, leurs traces, tes spots favoris et tes zones privées seront supprimés de ce téléphone. C'est définitif.") },
             confirmButton = {
                 TextButton(onClick = { confirmErase = false; onEraseAll() }) { Text("Tout effacer", color = c.action) }
             },
