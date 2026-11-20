@@ -8,6 +8,8 @@ import com.rideak.exploration.CellId
 import com.rideak.exploration.ExplorationEngine
 import com.rideak.exploration.ExplorationRegion
 import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.Place
+import com.rideak.exploration.anchor
 import com.rideak.exploration.PlaceCategory
 import com.rideak.exploration.PlaceDiscoverer
 import com.rideak.exploration.PrivacyMask
@@ -31,6 +33,23 @@ import kotlinx.coroutines.withContext
 
 data class MapCamera(val latitude: Double, val longitude: Double, val zoom: Double)
 
+/** A carousel card used as a filter: which discovered places stay on the map. Null categories: all of them. */
+enum class MapFilter(val categories: Set<PlaceCategory>?) {
+    ALL(null),
+    CITIES(setOf(PlaceCategory.MONUMENT, PlaceCategory.LANDMARK)),
+    PARKS(setOf(PlaceCategory.PARK)),
+    RIVERS(setOf(PlaceCategory.RIVER, PlaceCategory.LAKE)),
+    FORESTS(setOf(PlaceCategory.FOREST)),
+}
+
+/** The four illustrated pins (design/generated/pin_*.webp) and the categories each one marks. */
+enum class PlacePin(val categories: Set<PlaceCategory>) {
+    PARK(setOf(PlaceCategory.PARK, PlaceCategory.FOREST)),
+    RIVER(setOf(PlaceCategory.RIVER, PlaceCategory.LAKE)),
+    CITY(setOf(PlaceCategory.MONUMENT, PlaceCategory.LANDMARK)),
+    HILLS(setOf(PlaceCategory.VIEWPOINT)),
+}
+
 /** "found / total" for the category carousel. */
 data class Counter(val found: Int, val total: Int)
 
@@ -47,6 +66,11 @@ data class WorldMapUiState(
     val cells: String = GeoJson.squares(emptyList()),
     val fog: String = GeoJson.fog(emptyList()),
     val spots: String = GeoJson.points(emptyList()),
+    /** Discovered places kept by [filter], one GeoJSON layer per pin illustration. */
+    val placePins: Map<PlacePin, String> = emptyMap(),
+    val filter: MapFilter = MapFilter.ALL,
+    /** Discovered places kept by [filter] (names for screen readers, positions for the camera). */
+    val shownPlaces: List<Place> = emptyList(),
     /** The rider's privacy zones, drawn for them only (never in share mode). */
     val privacyZones: String = GeoJson.circles(emptyList()),
     val hasPrivacyZones: Boolean = false,
@@ -70,10 +94,12 @@ class MapViewModel(
         val explored: Set<CellId>,
         val regions: List<ExplorationRegion>,
         val places: Map<PlaceCategory, Counter>,
+        val discovered: List<Place>,
     )
 
     private val grid = SlippyTileGrid()
     private val shareMode = MutableStateFlow(false)
+    private val filter = MutableStateFlow(MapFilter.ALL)
 
     /**
      * Recomputed whenever finished rides change (like Home and Places): the map tab is kept alive,
@@ -82,8 +108,8 @@ class MapViewModel(
     private val ridden = repository.observeFinishedRides().map { loadRidden() }
 
     val state: StateFlow<WorldMapUiState> =
-        combine(ridden, privacy.observeZones(), shareMode) { ridden, zones, share ->
-            withContext(Dispatchers.Default) { build(ridden, zones, share) }
+        combine(ridden, privacy.observeZones(), shareMode, filter) { ridden, zones, share, filter ->
+            withContext(Dispatchers.Default) { build(ridden, zones, share, filter) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WorldMapUiState())
 
     private suspend fun loadRidden(): Ridden {
@@ -101,6 +127,7 @@ class MapViewModel(
                 explored = engine.cellsForSegments(track),
                 regions = packs.map { it.region },
                 places = places.groupBy { it.category }.mapValues { (_, list) -> Counter(list.count { it.id in found }, list.size) },
+                discovered = places.filter { it.id in found },
             )
         }
     }
@@ -109,11 +136,22 @@ class MapViewModel(
         shareMode.value = enabled
     }
 
-    private fun build(ridden: Ridden, zones: List<PrivacyZone>, share: Boolean): WorldMapUiState {
+    /** Tapping the selected card again shows everything. */
+    fun selectFilter(selected: MapFilter) {
+        filter.value = if (filter.value == selected) MapFilter.ALL else selected
+    }
+
+    private fun build(ridden: Ridden, zones: List<PrivacyZone>, share: Boolean, filter: MapFilter): WorldMapUiState {
         // The rider sees everything on their own map; share mode hides what lies in their zones.
         val mask = PrivacyMask(if (share) zones else emptyList())
         val cells = mask.cells(ridden.explored, grid).mapNotNull(grid::boundsOf)
         val all = ridden.segments.flatten() + ridden.spots
+        // Share mode also hides discovered places lying in a privacy zone.
+        val shown = ridden.discovered
+            .filter { filter.categories == null || it.category in filter.categories }
+            .filterNot { mask.hides(it.anchor) }
+        // A filter frames its places; without one, everything ridden.
+        val framed = if (filter != MapFilter.ALL && shown.isNotEmpty()) shown.map { it.anchor } else all
         return WorldMapUiState(
             loading = false,
             exploredCells = ridden.explored.size,
@@ -127,13 +165,16 @@ class MapViewModel(
             cells = GeoJson.squares(cells),
             fog = GeoJson.fog(cells),
             spots = GeoJson.points(mask.points(ridden.spots)),
+            placePins = PlacePin.entries.associateWith { pin -> GeoJson.points(shown.filter { it.category in pin.categories }.map { it.anchor }) },
+            filter = filter,
+            shownPlaces = shown,
             privacyZones = GeoJson.circles(if (share) emptyList() else zones),
             hasPrivacyZones = zones.isNotEmpty(),
             shareMode = share,
             camera = if (all.isEmpty()) WorldMapUiState().camera else fit(all),
-            bounds = if (all.isEmpty()) emptyList() else listOf(
-                GeoPoint(all.minOf { it.latitude }, all.minOf { it.longitude }),
-                GeoPoint(all.maxOf { it.latitude }, all.maxOf { it.longitude }),
+            bounds = if (framed.isEmpty()) emptyList() else listOf(
+                GeoPoint(framed.minOf { it.latitude }, framed.minOf { it.longitude }),
+                GeoPoint(framed.maxOf { it.latitude }, framed.maxOf { it.longitude }),
             ),
         )
     }

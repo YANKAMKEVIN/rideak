@@ -1,6 +1,13 @@
 package com.rideak.shared.feature.map
 
+import com.rideak.exploration.ExplorationRegion
 import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.Place
+import com.rideak.exploration.PlaceCategory
+import com.rideak.exploration.PlaceGeometry
+import com.rideak.exploration.PlaceId
+import com.rideak.exploration.RegionId
+import com.rideak.exploration.RegionPackCodec
 import com.rideak.exploration.RideId
 import com.rideak.exploration.TrackPoint
 import com.rideak.ride.RideStatus
@@ -20,6 +27,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 /** The map tab stays alive: it must follow finished rides, not load them once. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -60,5 +68,34 @@ class MapViewModelTest {
 
         rides.deleteFinishedRides()
         vm.awaitState { it.tracks == noTracks && it.exploredCells == 0 }
+    }
+
+    @Test
+    fun cardsFilterTheDiscoveredPlacesAndFrameThem() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val rides = FakeRideRepository()
+        // Both places sit on the ride (49.0364, 2.0761 → 2.0802); the forest far away is never reached.
+        val park = Place(PlaceId("park"), "Parc", PlaceCategory.PARK, PlaceGeometry.Point(GeoPoint(49.0364, 2.0770)))
+        val river = Place(PlaceId("river"), "L'Oise", PlaceCategory.RIVER, PlaceGeometry.Point(GeoPoint(49.0364, 2.0790)))
+        val forest = Place(PlaceId("forest"), "Forêt", PlaceCategory.FOREST, PlaceGeometry.Point(GeoPoint(49.2, 2.3)))
+        val region = ExplorationRegion(
+            RegionId("r"), "Cergy",
+            listOf(PlaceGeometry.Polygon(listOf(GeoPoint(49.0, 2.0), GeoPoint(49.0, 2.2), GeoPoint(49.1, 2.2)))),
+            "tile17", emptySet(),
+        )
+        val vm = MapViewModel(rides, DeveloperSettings(), { listOf(RegionPackCodec.Pack(region, "OSM", listOf(park, river, forest))) }, FakePrivacyZoneRepository())
+        backgroundScope.launch { vm.state.collect {} }
+        rides.finishRide("r1")
+
+        val all = vm.awaitState { it.shownPlaces.isNotEmpty() }
+        assertEquals(setOf("Parc", "L'Oise"), all.shownPlaces.map { it.name }.toSet())
+
+        vm.selectFilter(MapFilter.PARKS)
+        val parks = vm.awaitState { it.filter == MapFilter.PARKS }
+        assertEquals(listOf("Parc"), parks.shownPlaces.map { it.name })
+        assertEquals(listOf(GeoPoint(49.0364, 2.0770), GeoPoint(49.0364, 2.0770)), parks.bounds)
+
+        vm.selectFilter(MapFilter.PARKS)
+        vm.awaitState { it.filter == MapFilter.ALL && it.shownPlaces.size == 2 }
     }
 }
