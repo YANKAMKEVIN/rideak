@@ -126,10 +126,12 @@ private fun Summary(state: RideSummaryUiState, onBack: () -> Unit) {
         )
 
         Column(Modifier.padding(spacing.m), verticalArrangement = Arrangement.spacedBy(spacing.m)) {
-            RevealBanner(revealed = state.cellsRevealed, traversed = state.cellsTraversed)
-            NewPlaces(state.newPlaces)
-            RideRewards(state.xpGained, state.newBadges)
+            // Right under the map, above what they switch: the spots list is visible without scrolling.
+            Tabs(selected = tab, spotCount = state.spots.size, onSelect = { tab = it })
             if (tab == 0) {
+                RevealBanner(revealed = state.cellsRevealed, traversed = state.cellsTraversed)
+                NewPlaces(state.newPlaces)
+                RideRewards(state.xpGained, state.newBadges)
                 StatsPanel(state)
                 Text(
                     "${formatDurationShort(ride.movingMillis)} en mouvement",
@@ -140,7 +142,6 @@ private fun Summary(state: RideSummaryUiState, onBack: () -> Unit) {
             } else {
                 SpotsList(state)
             }
-            Tabs(selected = tab, spotCount = state.spots.size, onSelect = { tab = it })
         }
     }
 }
@@ -213,7 +214,12 @@ private fun SpotsList(state: RideSummaryUiState) {
         ) {
             Icon(RideakIcons.Heart, contentDescription = null, tint = c.action, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(12.dp))
-            Text("Spot ${i + 1} · ${formatClock(spot.createdAtEpochMillis)}", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+            // Named by when and where, rather than "Spot 1".
+            val place = state.spotPlaces.getOrNull(i)
+            Column {
+                Text(formatClock(spot.createdAtEpochMillis), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = c.textPrimary)
+                Text(place?.let { "Près de ${it.name}" } ?: "Spot ${i + 1}", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+            }
         }
     }
 }
