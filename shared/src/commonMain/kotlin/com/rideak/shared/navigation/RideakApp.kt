@@ -1,5 +1,8 @@
 package com.rideak.shared.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -118,7 +121,11 @@ private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
             }
             composable<PrivacyPolicyRoute> { LegalScreen("files/legal/privacy_policy.md", onBack = { navController.popBackStack() }) }
             composable<CreditsRoute> { LegalScreen("files/legal/credits.md", onBack = { navController.popBackStack() }) }
-            composable<RideRoute> {
+            // The ride screen rises from the bottom and goes back down when minimised, where its chevron points.
+            composable<RideRoute>(
+                enterTransition = { slideInVertically(tween(350)) { it } },
+                popExitTransition = { slideOutVertically(tween(300)) { it } },
+            ) {
                 RideScreen(
                     onFinished = { rideId ->
                         navController.navigate(RideSummaryRoute(rideId.value, fresh = true)) {
