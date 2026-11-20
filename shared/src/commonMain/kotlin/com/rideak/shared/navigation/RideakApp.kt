@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -24,6 +25,7 @@ import com.rideak.shared.feature.home.HomeScreen
 import com.rideak.shared.feature.map.WorldMapScreen
 import com.rideak.shared.feature.legal.LegalScreen
 import com.rideak.shared.feature.onboarding.OnboardingScreen
+import com.rideak.shared.feature.places.PlacesFocus
 import com.rideak.shared.feature.places.PlacesScreen
 import com.rideak.shared.feature.profile.ProfileScreen
 import com.rideak.shared.feature.ride.RideScreen
@@ -58,6 +60,7 @@ fun RideakApp() {
 @Composable
 private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
     val navController = rememberNavController()
+    val placesFocus = koinInject<PlacesFocus>()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
     val selectedIndex = topLevelDestinations.indexOfFirst { top ->
@@ -74,19 +77,22 @@ private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
                 RideakBottomBar(
                     items = topLevelDestinations.map { it.item },
                     selectedIndex = selectedIndex,
-                    onSelect = { index ->
-                        navController.navigate(topLevelDestinations[index].route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
+                    onSelect = { index -> navController.navigateToTab(topLevelDestinations[index].route) },
                 )
             }
         },
     ) { padding ->
         NavHost(navController, startDestination = HomeRoute, modifier = Modifier.padding(padding)) {
-            composable<HomeRoute> { HomeScreen(onRide = { navController.navigate(RideRoute) { launchSingleTop = true } }) }
+            composable<HomeRoute> {
+                HomeScreen(
+                    onRide = { navController.navigate(RideRoute) { launchSingleTop = true } },
+                    onOpenMap = { navController.navigateToTab(MapRoute) },
+                    onOpenCategory = { category ->
+                        placesFocus.request(category.categories)
+                        navController.navigateToTab(PlacesRoute)
+                    },
+                )
+            }
             composable<MapRoute> { WorldMapScreen() }
             composable<RidesRoute> {
                 RidesScreen(
@@ -123,5 +129,14 @@ private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
                 navController.navigate(RideRoute) { launchSingleTop = true }
             }
         }
+    }
+}
+
+/** Switches bottom-bar tab, keeping each tab's state (same as tapping the bar). */
+private fun NavController.navigateToTab(route: Any) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }

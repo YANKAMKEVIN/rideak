@@ -36,6 +36,7 @@ import kotlin.test.assertEquals
 import com.rideak.shared.feature.rides.RidesScreen
 import com.rideak.shared.feature.rides.RidesViewModel
 import com.rideak.shared.feature.places.PlacesViewModel
+import com.rideak.shared.feature.places.PlacesFocus
 import com.rideak.shared.feature.legal.LegalDocument
 import com.rideak.shared.feature.legal.parseMarkdown
 import com.rideak.shared.feature.map.OfflineMapSection
@@ -88,6 +89,7 @@ class RideakUiTest {
                     single { RideRecorder(get(), { noGps }, MainScope(), { 0L }, { "id" }) }
                     single { AppInfo(isDebug = true) }
                     single { DeveloperSettings() }
+                    single { PlacesFocus() }
                     single { AppSettings(InMemorySettingsStorage(mapOf(AppSettings.ONBOARDING_DONE to true))) }
                     single<RegionSource> { RegionSource { emptyList() } }
                     viewModelOf(::PlacesViewModel)
@@ -117,7 +119,7 @@ class RideakUiTest {
     fun bottomBarNavigatesBetweenTopLevelDestinations() = runComposeUiTest {
         setContent { RideakApp() }
 
-        onNodeWithText("Explorer autour de moi").assertIsDisplayed()
+        onNodeWithText("Voir ma carte").assertHasClickAction()
         onNodeWithContentDescription("Mon territoire, Ta première sortie dévoilera ta carte, prochain palier 10 zones").assertIsDisplayed()
         onNodeWithText("Sorties").performClick()
         onNodeWithText("Aucune sortie pour l'instant").assertIsDisplayed()
