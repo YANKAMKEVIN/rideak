@@ -29,13 +29,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rideak.shared.designsystem.RideakTheme
+import com.rideak.exploration.Place
 import com.rideak.exploration.PlaceCategory
+import com.rideak.shared.format.formatDay
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /** "Lieux": the real places of the rider's regions, discovered or still hidden. */
 @Composable
-fun PlacesScreen() {
+fun PlacesScreen(onOpenPlace: (Place) -> Unit = {}) {
     val viewModel: PlacesViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val focus = koinInject<PlacesFocus>()
@@ -49,7 +51,7 @@ fun PlacesScreen() {
         focus.consume()
     }
     Box(Modifier.fillMaxSize().background(RideakTheme.colors.night).windowInsetsPadding(WindowInsets.statusBars)) {
-        if (state.loading) CircularProgressIndicator(Modifier.align(Alignment.Center)) else PlacesContent(state, listState)
+        if (state.loading) CircularProgressIndicator(Modifier.align(Alignment.Center)) else PlacesContent(state, listState, onOpenPlace)
     }
 }
 
@@ -58,13 +60,13 @@ internal fun PlacesUiState.sectionIndex(categories: Set<PlaceCategory>): Int? {
     var index = 1
     for (section in sections) {
         if (section.category in categories) return index
-        index += 1 + section.discovered.size + if (section.hidden > 0) 1 else 0
+        index += 1 + section.discovered.size + section.hiddenCards + if (section.hidden > 0) 1 else 0
     }
     return null
 }
 
 @Composable
-fun PlacesContent(state: PlacesUiState, listState: LazyListState = rememberLazyListState()) {
+fun PlacesContent(state: PlacesUiState, listState: LazyListState = rememberLazyListState(), onOpenPlace: (Place) -> Unit = {}) {
     val colors = RideakTheme.colors
     LazyColumn(
         state = listState,
@@ -99,7 +101,16 @@ fun PlacesContent(state: PlacesUiState, listState: LazyListState = rememberLazyL
                     Text("${section.discovered.size} / ${section.total}", style = MaterialTheme.typography.labelLarge, color = section.category.tint)
                 }
             }
-            items(section.discovered, key = { it.id.value }) { PlaceRow(it, discovered = true) }
+            items(section.discovered, key = { it.id.value }) { place ->
+                PlaceRow(
+                    place,
+                    discovered = true,
+                    detail = section.discoveredAt[place.id]?.let { "découvert le ${formatDay(it)}" },
+                    onClick = { onOpenPlace(place) },
+                )
+            }
+            // A few empty slots of the collection, to make the rest worth finding.
+            items(section.hiddenCards, key = { "${section.category.name}-hidden-$it" }) { HiddenPlaceRow(section.category) }
             if (section.hidden > 0) {
                 item(key = "${section.category.name}-hidden") {
                     Text(
@@ -113,3 +124,6 @@ fun PlacesContent(state: PlacesUiState, listState: LazyListState = rememberLazyL
         }
     }
 }
+
+/** "???" cards shown before the "N lieux encore cachés" line. */
+internal val PlaceSection.hiddenCards: Int get() = minOf(hidden, 3)

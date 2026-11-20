@@ -22,6 +22,7 @@ import androidx.navigation.toRoute
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.RideakBottomBar
 import com.rideak.shared.feature.home.HomeScreen
+import com.rideak.shared.feature.map.MapFocus
 import com.rideak.shared.feature.map.WorldMapScreen
 import com.rideak.shared.feature.legal.LegalScreen
 import com.rideak.shared.feature.onboarding.OnboardingScreen
@@ -61,6 +62,7 @@ fun RideakApp() {
 private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
     val navController = rememberNavController()
     val placesFocus = koinInject<PlacesFocus>()
+    val mapFocus = koinInject<MapFocus>()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
     val selectedIndex = topLevelDestinations.indexOfFirst { top ->
@@ -100,7 +102,14 @@ private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
                     onStartRide = { navController.navigate(RideRoute) { launchSingleTop = true } },
                 )
             }
-            composable<PlacesRoute> { PlacesScreen() }
+            composable<PlacesRoute> {
+                PlacesScreen(
+                    onOpenPlace = { place ->
+                        mapFocus.request(place)
+                        navController.navigateToTab(MapRoute)
+                    },
+                )
+            }
             composable<ProfileRoute> {
                 ProfileScreen(
                     onPrivacyPolicy = { navController.navigate(PrivacyPolicyRoute) },

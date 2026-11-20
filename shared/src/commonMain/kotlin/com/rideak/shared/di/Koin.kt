@@ -6,6 +6,7 @@ import com.rideak.data.platformDataModule
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.shared.feature.home.HomeViewModel
 import com.rideak.shared.feature.map.MapLibreOfflineMapStore
+import com.rideak.shared.feature.map.MapFocus
 import com.rideak.shared.feature.map.MapViewModel
 import com.rideak.shared.feature.map.OfflineMapStore
 import com.rideak.shared.feature.map.OfflineMapViewModel
@@ -40,6 +41,7 @@ private val uiModule = module {
     single { DeveloperSettings() }
     single { AppSettings(get()) }
     single { PlacesFocus() }
+    single { MapFocus() }
     single<RegionSource> { BundledRegions() }
     single<OfflineMapStore> { MapLibreOfflineMapStore() }
     viewModelOf(::OfflineMapViewModel)

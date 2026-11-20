@@ -24,8 +24,8 @@ class PlacesFocusTest {
     @Test
     fun homeShortcutScrollsToTheFirstSectionOfItsCategories() {
         assertEquals(1, state.sectionIndex(setOf(PlaceCategory.PARK)))
-        // Park section: header + 2 places + "hidden" line.
-        assertEquals(5, state.sectionIndex(setOf(PlaceCategory.RIVER, PlaceCategory.LAKE)))
+        // Park section: header + 2 places + 3 "???" cards + "hidden" line.
+        assertEquals(8, state.sectionIndex(setOf(PlaceCategory.RIVER, PlaceCategory.LAKE)))
         assertNull(state.sectionIndex(setOf(PlaceCategory.VIEWPOINT)))
     }
 

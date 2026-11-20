@@ -37,7 +37,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import com.rideak.exploration.Place
 import com.rideak.exploration.PlaceCategory
+import com.rideak.exploration.anchor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
@@ -65,6 +67,7 @@ import com.rideak.shared.resources.pin_river
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.const
@@ -105,6 +108,12 @@ private val categories = listOf(
 fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    val focus = koinInject<MapFocus>()
+    val focusedPlace by focus.place.collectAsStateWithLifecycle()
+    // Opened on a place from "Lieux": back to a tab where places are pinned.
+    LaunchedEffect(focusedPlace) {
+        if (focusedPlace != null && MapTab.entries[tab] == MapTab.Rides) tab = MapTab.Exploration.ordinal
+    }
     val colors = RideakTheme.colors
     Column(Modifier.fillMaxSize().background(colors.night).windowInsetsPadding(WindowInsets.statusBars)) {
         Row(Modifier.fillMaxWidth().padding(end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -122,7 +131,7 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
             if (state.loading) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else {
-                ExplorationMap(state, MapTab.entries[tab])
+                ExplorationMap(state, MapTab.entries[tab], focusedPlace, onFocused = focus::consume)
                 if (MapTab.entries[tab] == MapTab.Exploration) {
                     TerritoryCard(
                         state.exploredCells,
@@ -167,7 +176,7 @@ private fun Tabs(selected: Int, onSelect: (Int) -> Unit) {
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
-private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
+private fun ExplorationMap(state: WorldMapUiState, tab: MapTab, focusedPlace: Place?, onFocused: () -> Unit) {
     val colors = RideakTheme.colors
     val heart = painterResource(Res.drawable.pin_heart)
     val pinImages = mapOf(
@@ -238,6 +247,13 @@ private fun ExplorationMap(state: WorldMapUiState, tab: MapTab) {
                 mapState.cameraForCoordinates(state.bounds.map { Position(longitude = it.longitude, latitude = it.latitude) }),
             )
         }
+    }
+    // After the fit above, so a place opened from "Lieux" wins: centred, close enough to see its streets.
+    LaunchedEffect(focusedPlace) {
+        val place = focusedPlace ?: return@LaunchedEffect
+        val anchor = place.anchor
+        mapState.setCameraPosition(CameraPosition(center = Position(longitude = anchor.longitude, latitude = anchor.latitude), zoom = 16.0))
+        onFocused()
     }
     MaplibreMap(
         modifier = Modifier.fillMaxSize(),

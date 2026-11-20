@@ -2,6 +2,7 @@ package com.rideak.shared.feature.places
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -26,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rideak.exploration.Place
+import com.rideak.exploration.PlaceCategory
 import com.rideak.shared.designsystem.RideakTheme
 
 /** End-of-ride "NOUVEL ENDROIT !" list. Nothing when the ride discovered no place. */
@@ -43,29 +47,50 @@ fun NewPlaces(places: List<Place>, modifier: Modifier = Modifier) {
     }
 }
 
-/** One place: category icon, name, category. Undiscovered places keep their mystery. */
+/**
+ * One place: category icon, name, category (and [detail], e.g. its discovery date). Undiscovered
+ * places keep their mystery. With [onClick] the row opens the place.
+ */
 @Composable
-fun PlaceRow(place: Place, discovered: Boolean, modifier: Modifier = Modifier) {
+fun PlaceRow(place: Place, discovered: Boolean, modifier: Modifier = Modifier, detail: String? = null, onClick: (() -> Unit)? = null) {
+    PlaceCard(place.category, if (discovered) place.name else null, modifier, detail, onClick)
+}
+
+/** A place not found yet: "???" with its category only. */
+@Composable
+fun HiddenPlaceRow(category: PlaceCategory, modifier: Modifier = Modifier) {
+    PlaceCard(category, name = null, modifier)
+}
+
+@Composable
+private fun PlaceCard(category: PlaceCategory, name: String?, modifier: Modifier, detail: String? = null, onClick: (() -> Unit)? = null) {
     val colors = RideakTheme.colors
-    val tint = if (discovered) place.category.tint else colors.lightSurface
-    val name = if (discovered) place.name else "???"
+    val discovered = name != null
+    val tint = if (discovered) category.tint else colors.lightSurface
     Row(
         modifier.fillMaxWidth()
-            .background(colors.surface, RideakTheme.shapes.medium)
+            .clip(RideakTheme.shapes.medium)
+            .background(colors.surface)
             .border(1.dp, tint.copy(alpha = 0.4f), RideakTheme.shapes.medium)
+            .then(if (onClick != null) Modifier.clickable(onClickLabel = "Voir sur la carte", onClick = onClick) else Modifier)
             .padding(horizontal = RideakTheme.spacing.m, vertical = 10.dp)
             .clearAndSetSemantics {
-                contentDescription = if (discovered) "${place.category.label} : ${place.name}" else "${place.category.label} pas encore découvert"
+                contentDescription = if (discovered) "${category.label} : $name" + (detail?.let { ", $it" } ?: "") else "${category.label} pas encore découvert"
+                if (onClick != null) onClick(label = "Voir sur la carte") { onClick(); true }
             },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(Modifier.size(40.dp).background(tint.copy(alpha = 0.15f), RideakTheme.shapes.pill), contentAlignment = Alignment.Center) {
-            Icon(place.category.icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+            Icon(category.icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
         }
         Column(Modifier.weight(1f)) {
-            Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = if (discovered) colors.textPrimary else colors.textSecondary, maxLines = 2)
-            Text(place.category.label, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+            Text(name ?: "???", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = if (discovered) colors.textPrimary else colors.textSecondary, maxLines = 2)
+            Text(
+                listOfNotNull(category.label, detail).joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
         }
     }
 }
