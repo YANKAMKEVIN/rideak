@@ -23,6 +23,8 @@ import com.rideak.data.location.LocationSourceSelector
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.shared.di.AppInfo
 import com.rideak.shared.di.DeveloperSettings
+import com.rideak.shared.settings.AppSettings
+import com.rideak.shared.settings.InMemorySettingsStorage
 import com.rideak.shared.feature.home.HomeViewModel
 import com.rideak.shared.feature.profile.ProfileViewModel
 import com.rideak.shared.feature.profile.PrivacySection
@@ -85,6 +87,7 @@ class RideakUiTest {
                     single { RideRecorder(get(), { noGps }, MainScope(), { 0L }, { "id" }) }
                     single { AppInfo(isDebug = true) }
                     single { DeveloperSettings() }
+                    single { AppSettings(InMemorySettingsStorage()) }
                     single<RegionSource> { RegionSource { emptyList() } }
                     viewModelOf(::PlacesViewModel)
                     single<OfflineMapStore> { FakeOfflineMapStore() }

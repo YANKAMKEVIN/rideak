@@ -6,6 +6,7 @@ import com.rideak.data.location.LocationSourceSelector
 import com.rideak.data.recorder.RecorderState
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.exploration.RideId
+import com.rideak.shared.settings.AppSettings
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,9 +22,11 @@ sealed interface RideEvent {
 class RideViewModel(
     private val recorder: RideRecorder,
     selector: LocationSourceSelector,
+    settings: AppSettings,
 ) : ViewModel() {
     val state: StateFlow<RecorderState> = recorder.state
     val simulated: StateFlow<Boolean> = selector.useSimulation
+    val keepScreenOn: StateFlow<Boolean> = settings.keepScreenOn
 
     private val _events = Channel<RideEvent>(Channel.BUFFERED)
     val events: Flow<RideEvent> = _events.receiveAsFlow()

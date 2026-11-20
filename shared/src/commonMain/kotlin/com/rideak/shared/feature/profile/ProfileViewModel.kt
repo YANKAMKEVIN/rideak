@@ -15,6 +15,7 @@ import com.rideak.shared.di.AppInfo
 import com.rideak.shared.di.DeveloperSettings
 import com.rideak.shared.feature.progress.playerStats
 import com.rideak.shared.feature.territory.RegionSource
+import com.rideak.shared.settings.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -39,11 +40,15 @@ class ProfileViewModel(
     private val rides: RideRepository,
     private val privacy: PrivacyZoneRepository,
     regions: RegionSource,
+    private val settings: AppSettings,
 ) : ViewModel() {
     val showDeveloperTools = appInfo.isDebug
     val simulation: StateFlow<Boolean> = selector.useSimulation
 
     fun setSimulation(enabled: Boolean) = selector.setUseSimulation(enabled)
+
+    val keepScreenOn: StateFlow<Boolean> = settings.keepScreenOn
+    fun setKeepScreenOn(enabled: Boolean) = settings.setKeepScreenOn(enabled)
 
     val mapStressTest: StateFlow<Boolean> = developer.mapStressTest
     fun setMapStressTest(enabled: Boolean) { developer.mapStressTest.value = enabled }

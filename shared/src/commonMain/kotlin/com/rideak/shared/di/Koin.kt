@@ -16,6 +16,8 @@ import com.rideak.shared.feature.rides.RidesViewModel
 import com.rideak.shared.feature.summary.RideSummaryViewModel
 import com.rideak.shared.feature.territory.BundledRegions
 import com.rideak.shared.feature.territory.RegionSource
+import com.rideak.shared.settings.AppSettings
+import com.rideak.shared.settings.platformSettingsModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.core.context.startKoin
@@ -35,6 +37,7 @@ class DeveloperSettings {
 
 private val uiModule = module {
     single { DeveloperSettings() }
+    single { AppSettings(get()) }
     single<RegionSource> { BundledRegions() }
     single<OfflineMapStore> { MapLibreOfflineMapStore() }
     viewModelOf(::OfflineMapViewModel)
@@ -51,7 +54,7 @@ private val uiModule = module {
 fun initKoin(platform: KoinAppDeclaration = {}) {
     val koin = startKoin {
         platform()
-        modules(dataModule, platformDataModule, uiModule)
+        modules(dataModule, platformDataModule, platformSettingsModule, uiModule)
     }.koin
     // A ride left unfinished by a killed process comes back paused.
     koin.get<CoroutineScope>(ApplicationScope).launch { koin.get<RideRecorder>().recoverUnfinished() }

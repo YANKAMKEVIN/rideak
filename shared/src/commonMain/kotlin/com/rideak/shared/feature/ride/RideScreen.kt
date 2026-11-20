@@ -83,6 +83,7 @@ import com.rideak.shared.format.speedKmhRounded
 import com.rideak.shared.permission.LocationAccess
 import com.rideak.shared.permission.LocationPermissionController
 import com.rideak.shared.permission.rememberLocationPermission
+import com.rideak.shared.platform.KeepScreenOn
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -98,6 +99,7 @@ fun RideScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val simulated by viewModel.simulated.collectAsStateWithLifecycle()
+    val keepScreenOn by viewModel.keepScreenOn.collectAsStateWithLifecycle()
     val permission = rememberLocationPermission()
     var acceptedApproximate by remember { mutableStateOf(false) }
     // Big in-screen confirmation rather than a small snackbar: readable at a glance while riding.
@@ -121,6 +123,8 @@ fun RideScreen(
 
     Box(Modifier.fillMaxSize().background(RideakTheme.colors.night)) {
         val active = state as? RecorderState.Active
+        // Phone on the handlebar: the speed stays readable while recording. Released when paused or minimised.
+        KeepScreenOn(enabled = keepScreenOn && active?.status == RideStatus.RECORDING)
         val canRecord = simulated || permission.access == LocationAccess.PRECISE ||
             (permission.access == LocationAccess.APPROXIMATE && acceptedApproximate)
         when {
