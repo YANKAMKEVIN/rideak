@@ -35,6 +35,11 @@ class FakeRideRepository : RideRepository {
     override suspend fun finishedSegmentsBefore(startedAtEpochMillis: Long): List<List<TrackPoint>> = emptyList()
     override suspend fun finishedSpots(): List<Spot> = emptyList()
     override suspend fun finishedEndpoints(): List<GeoPoint> = emptyList()
+    override suspend fun deleteFinishedRide(rideId: RideId) {
+        if (rides.value[rideId]?.status != RideStatus.FINISHED) return
+        points.remove(rideId)
+        rides.value -= rideId
+    }
     override suspend fun deleteFinishedRides() {
         val finished = rides.value.filterValues { it.status == RideStatus.FINISHED }.keys
         finished.forEach { points.remove(it) }

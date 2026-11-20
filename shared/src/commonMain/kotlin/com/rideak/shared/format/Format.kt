@@ -63,6 +63,12 @@ private val months = listOf(
 private fun local(epochMillis: Long) =
     Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(TimeZone.currentSystemDefault())
 
+/** "Octobre 2026": month headers of the ride list. */
+fun formatMonth(epochMillis: Long): String {
+    val date = local(epochMillis)
+    return "${months[date.month.ordinal].replaceFirstChar { it.uppercase() }} ${date.year}"
+}
+
 /** "11 octobre". */
 fun formatDay(epochMillis: Long): String {
     val date = local(epochMillis)
