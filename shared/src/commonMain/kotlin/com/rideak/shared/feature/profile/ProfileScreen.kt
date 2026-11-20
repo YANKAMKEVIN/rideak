@@ -59,7 +59,7 @@ fun ProfileScreen(
     ) {
         Text("Profil", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = c.textPrimary, modifier = Modifier.semantics { heading() })
         LevelCard(progress.level)
-        BadgeGrid(progress.stats)
+        BadgeGrid(progress.stats, unlockedAt = progress.badgeDates)
 
         Column(
             Modifier.fillMaxWidth().background(c.surface, RideakTheme.shapes.medium).padding(RideakTheme.spacing.m),

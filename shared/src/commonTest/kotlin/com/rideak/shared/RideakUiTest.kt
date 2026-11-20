@@ -226,7 +226,9 @@ class RideakUiTest {
         onNodeWithContentDescription("Niveau 2, Éclaireur, 180 XP, prochain niveau à 300 XP").assertIsDisplayed()
         onNodeWithText("2 / 6").assertIsDisplayed()
         onNodeWithContentDescription("Badge 10 km, débloqué").assertIsDisplayed()
-        onNodeWithContentDescription("Badge Explorateur, verrouillé, Explore 100 zones, 8 sur 100").assertIsDisplayed()
+        onNodeWithContentDescription("Badge Explorateur, verrouillé, Explore 100 zones, 8 sur 100").assertIsDisplayed().performClick()
+        onNodeWithText("Explore 100 zones").assertIsDisplayed()
+        onNodeWithText("8 / 100").assertIsDisplayed()
     }
 
     @Test
