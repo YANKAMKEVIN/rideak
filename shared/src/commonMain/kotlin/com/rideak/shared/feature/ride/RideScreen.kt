@@ -102,8 +102,12 @@ fun RideScreen(
     val keepScreenOn by viewModel.keepScreenOn.collectAsStateWithLifecycle()
     val permission = rememberLocationPermission()
     var acceptedApproximate by remember { mutableStateOf(false) }
+    val revealedCells by viewModel.revealedCells.collectAsStateWithLifecycle()
     // Big in-screen confirmation rather than a small snackbar: readable at a glance while riding.
     var feedback by remember { mutableStateOf<String?>(null) }
+    // "+1 ZONE !" / "NOUVEL ENDROIT : …" in the manga voice, the moment it is earned.
+    var discovery by remember { mutableStateOf<Discovery?>(null) }
+    val haptics = rememberRideHaptics()
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -111,7 +115,23 @@ fun RideScreen(
                 is RideEvent.Finished -> onFinished(event.rideId)
                 RideEvent.SpotSaved -> feedback = "❤️ Spot enregistré"
                 RideEvent.SpotNeedsFix -> feedback = "Position GPS pas encore trouvée"
+                is RideEvent.PlaceDiscovered -> {
+                    discovery = Discovery.Place(event.place.name)
+                    haptics.placeDiscovered()
+                }
+                is RideEvent.ZonesRevealed -> {
+                    // A new place stays on screen: the zones it came with are in the counter anyway.
+                    val shown = discovery
+                    if (shown !is Discovery.Place) discovery = Discovery.Zones(((shown as? Discovery.Zones)?.count ?: 0) + event.count)
+                    haptics.zoneRevealed()
+                }
             }
+        }
+    }
+    LaunchedEffect(discovery) {
+        if (discovery != null) {
+            delay(3_000)
+            discovery = null
         }
     }
     LaunchedEffect(feedback) {
@@ -132,6 +152,8 @@ fun RideScreen(
                 state = active,
                 simulated = simulated,
                 feedback = feedback,
+                discovery = discovery,
+                revealedCells = revealedCells,
                 viewModel = viewModel,
                 locationOff = !simulated && !permission.servicesEnabled,
                 onOpenLocationSettings = permission.openLocationSettings,
@@ -162,6 +184,8 @@ private fun ActiveRide(
     state: RecorderState.Active,
     simulated: Boolean,
     feedback: String?,
+    discovery: Discovery?,
+    revealedCells: Int,
     viewModel: RideViewModel,
     locationOff: Boolean,
     onOpenLocationSettings: () -> Unit,
@@ -208,6 +232,7 @@ private fun ActiveRide(
         when {
             stopping -> SavingPill()
             feedback != null -> FeedbackPill(feedback)
+            discovery != null -> DiscoveryPill(discovery)
             paused -> Text(
                 "EN PAUSE",
                 style = RideakTheme.typography.impact.copy(fontSize = 56.sp, shadow = Shadow(Color.Black, Offset(3f, 4f), 8f)),
@@ -249,7 +274,7 @@ private fun ActiveRide(
                 ) {
                     topBar()
                     notices()
-                    SpeedAndMetrics(state)
+                    SpeedAndMetrics(state, revealedCells)
                 }
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) { mapOverlay() }
                 Controls(paused, state.spotCount, vertical = true, enabled = !stopping, viewModel, onResume) { confirmStop = true }
@@ -264,7 +289,7 @@ private fun ActiveRide(
                 ) {
                     topBar()
                     notices()
-                    SpeedAndMetrics(state)
+                    SpeedAndMetrics(state, revealedCells)
                 }
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { mapOverlay() }
                 Box(
@@ -347,7 +372,7 @@ private fun SavingPill() {
 
 /** "⚡ 23 KM/H" in the manga voice, then distance / duration / climb with their icons (mockup layout). */
 @Composable
-private fun SpeedAndMetrics(state: RecorderState.Active) {
+private fun SpeedAndMetrics(state: RecorderState.Active, revealedCells: Int) {
     val colors = RideakTheme.colors
     val searching = (state.signal == GpsSignal.SEARCHING && state.metrics.currentSpeedMps == 0.0) ||
         state.signal == GpsSignal.UNAVAILABLE
@@ -370,6 +395,10 @@ private fun SpeedAndMetrics(state: RecorderState.Active) {
             MetricLine(RideakIcons.Stopwatch, colors.mangaWhite, formatKilometers(state.metrics.distanceMeters), "km", "Distance : ${formatKilometers(state.metrics.distanceMeters)} kilomètres")
             MetricLine(RideakIcons.Timer, colors.exploration, formatDuration(state.activeDurationMillis), "", "Durée : ${formatDuration(state.activeDurationMillis)}")
             MetricLine(RideakIcons.Mountain, colors.exploration, "${state.metrics.elevationGainMeters.toInt()}", "m", "Dénivelé positif : ${state.metrics.elevationGainMeters.toInt()} mètres")
+            MetricLine(
+                RideakIcons.Leaf, colors.nature, "$revealedCells", if (revealedCells == 1) "zone" else "zones",
+                "$revealedCells ${if (revealedCells == 1) "zone dévoilée" else "zones dévoilées"} pendant cette sortie",
+            )
         }
     }
 }
@@ -435,6 +464,40 @@ private fun FeedbackPill(text: String) {
             .border(2.dp, colors.action, RideakTheme.shapes.pill)
             .padding(horizontal = 24.dp, vertical = 14.dp)
             .semantics { liveRegion = LiveRegionMode.Polite },
+    )
+}
+
+/** What the ride just revealed, shown for a few seconds over the map. */
+private sealed interface Discovery {
+    data class Zones(val count: Int) : Discovery
+    data class Place(val name: String) : Discovery
+}
+
+@Composable
+private fun DiscoveryPill(discovery: Discovery) {
+    val colors = RideakTheme.colors
+    val text = when (discovery) {
+        is Discovery.Zones -> if (discovery.count == 1) "+1 ZONE !" else "+${discovery.count} ZONES !"
+        is Discovery.Place -> "NOUVEL ENDROIT : ${discovery.name.uppercase()}"
+    }
+    Text(
+        text,
+        style = RideakTheme.typography.impact.copy(fontSize = 32.sp, lineHeight = 36.sp, shadow = Shadow(Color.Black, Offset(2f, 3f), 4f)),
+        color = colors.reward,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .padding(horizontal = RideakTheme.spacing.m)
+            .graphicsLayer(rotationZ = -3f)
+            .background(colors.night.copy(alpha = 0.92f), RideakTheme.shapes.pill)
+            .border(3.dp, colors.reward, RideakTheme.shapes.pill)
+            .padding(horizontal = 24.dp, vertical = 12.dp)
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = when (discovery) {
+                    is Discovery.Zones -> if (discovery.count == 1) "Une zone dévoilée" else "${discovery.count} zones dévoilées"
+                    is Discovery.Place -> "Nouvel endroit : ${discovery.name}"
+                }
+            },
     )
 }
 
