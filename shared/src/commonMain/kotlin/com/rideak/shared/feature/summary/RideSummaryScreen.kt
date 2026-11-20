@@ -1,5 +1,10 @@
 package com.rideak.shared.feature.summary
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,7 +38,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -41,7 +49,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -50,6 +61,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.RevealBanner
@@ -70,7 +83,7 @@ private val ClimbPurple = Color(0xFFB45CFF)
 
 /** End of ride, laid out after mockup "5. FIN DE SORTIE". */
 @Composable
-fun RideSummaryScreen(rideId: String, onBack: () -> Unit) {
+fun RideSummaryScreen(rideId: String, onBack: () -> Unit, fresh: Boolean = false) {
     val viewModel: RideSummaryViewModel = koinViewModel(key = rideId) { parametersOf(rideId) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val ride = state.ride
@@ -78,17 +91,26 @@ fun RideSummaryScreen(rideId: String, onBack: () -> Unit) {
         when {
             state.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
             ride == null -> Text("Sortie introuvable.", color = RideakTheme.colors.textSecondary, modifier = Modifier.align(Alignment.Center))
-            else -> Summary(state, onBack)
+            else -> Summary(state, onBack, fresh)
         }
     }
 }
 
 @Composable
-private fun Summary(state: RideSummaryUiState, onBack: () -> Unit) {
+private fun Summary(state: RideSummaryUiState, onBack: () -> Unit, fresh: Boolean) {
     val ride = requireNotNull(state.ride)
     val c = RideakTheme.colors
     val spacing = RideakTheme.spacing
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    // Played once, right after the ride: rotating or coming back shows the rewards at rest.
+    var celebrated by rememberSaveable { mutableStateOf(!fresh) }
+    val celebrate = !celebrated
+    LaunchedEffect(Unit) {
+        if (celebrate) {
+            delay(3_000)
+            celebrated = true
+        }
+    }
 
     Column(
         Modifier.fillMaxSize()
@@ -129,9 +151,20 @@ private fun Summary(state: RideSummaryUiState, onBack: () -> Unit) {
             // Right under the map, above what they switch: the spots list is visible without scrolling.
             Tabs(selected = tab, spotCount = state.spots.size, onSelect = { tab = it })
             if (tab == 0) {
-                RevealBanner(revealed = state.cellsRevealed, traversed = state.cellsTraversed)
-                NewPlaces(state.newPlaces)
-                RideRewards(state.xpGained, state.newBadges)
+                if (fresh) {
+                    Staged(step = 0, animate = celebrate) {
+                        Text(
+                            "SORTIE TERMINÉE !",
+                            style = RideakTheme.typography.impact.copy(fontSize = 40.sp, lineHeight = 44.sp, shadow = Shadow(Color.Black, Offset(3f, 4f), 6f)),
+                            color = c.mangaWhite,
+                            modifier = Modifier.graphicsLayer(rotationZ = -3f).semantics { heading() },
+                        )
+                    }
+                }
+                // Cascade after a ride: zones, then places, then XP and badges.
+                Staged(step = 1, animate = celebrate) { RevealBanner(revealed = state.cellsRevealed, traversed = state.cellsTraversed) }
+                Staged(step = 2, animate = celebrate) { NewPlaces(state.newPlaces) }
+                Staged(step = 3, animate = celebrate) { RideRewards(state.xpGained, state.newBadges, celebrate = celebrate) }
                 StatsPanel(state)
                 Text(
                     "${formatDurationShort(ride.movingMillis)} en mouvement",
@@ -250,4 +283,15 @@ private fun Tabs(selected: Int, spotCount: Int, onSelect: (Int) -> Unit) {
             }
         }
     }
+}
+
+/** Enters [step] × 350 ms after the screen when [animate], fading and rising; otherwise shown at rest. */
+@Composable
+private fun Staged(step: Int, animate: Boolean, content: @Composable () -> Unit) {
+    val visible = remember { MutableTransitionState(!animate) }
+    visible.targetState = true
+    AnimatedVisibility(
+        visibleState = visible,
+        enter = fadeIn(tween(400, delayMillis = step * 350)) + slideInVertically(tween(400, delayMillis = step * 350)) { it / 3 },
+    ) { content() }
 }

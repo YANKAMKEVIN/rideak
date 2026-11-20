@@ -1,5 +1,9 @@
 package com.rideak.shared.feature.progress
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +35,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -48,6 +55,7 @@ import com.rideak.exploration.PlayerStats
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.format.formatDay
 import org.jetbrains.compose.resources.painterResource
+import kotlin.math.roundToInt
 
 /** Level, title and XP toward the next level. */
 @Composable
@@ -194,24 +202,40 @@ private fun BadgeTile(badge: Badge, stats: PlayerStats, modifier: Modifier, onCl
     }
 }
 
-/** End-of-ride rewards: XP earned and badges unlocked by this ride. */
+/**
+ * End-of-ride rewards: XP earned and badges unlocked by this ride. With [celebrate] (just after the
+ * ride) the XP counts up and each badge bounces in with a yellow flash.
+ */
 @Composable
-fun RideRewards(xp: Int, badges: List<Badge>, modifier: Modifier = Modifier) {
+fun RideRewards(xp: Int, badges: List<Badge>, modifier: Modifier = Modifier, celebrate: Boolean = false) {
     if (xp <= 0 && badges.isEmpty()) return
     val c = RideakTheme.colors
+    val shownXp = remember { Animatable(if (celebrate) 0f else xp.toFloat()) }
+    val bounce = remember { Animatable(if (celebrate) 0.6f else 1f) }
+    val flash = remember { Animatable(if (celebrate) 1f else 0f) }
+    LaunchedEffect(xp) {
+        shownXp.animateTo(xp.toFloat(), tween(1_000, delayMillis = 300))
+        bounce.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
+    }
+    LaunchedEffect(Unit) { flash.animateTo(0f, tween(1_200, delayMillis = 1_300)) }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (xp > 0) {
             Text(
-                "+$xp XP",
+                "+${shownXp.value.roundToInt()} XP",
                 style = RideakTheme.typography.impact.copy(fontSize = 26.sp, shadow = Shadow(Color.Black, Offset(2f, 3f), 4f)),
                 color = c.reward,
+                modifier = Modifier.semantics { contentDescription = "+$xp XP" },
             )
         }
         badges.forEach { badge ->
             Row(
                 Modifier.fillMaxWidth()
-                    .background(c.surface, RideakTheme.shapes.medium)
-                    .border(1.dp, c.reward.copy(alpha = 0.6f), RideakTheme.shapes.medium)
+                    .graphicsLayer {
+                        scaleX = bounce.value
+                        scaleY = bounce.value
+                    }
+                    .background(lerp(c.surface, c.reward.copy(alpha = 0.5f), flash.value), RideakTheme.shapes.medium)
+                    .border((1 + 2 * flash.value).dp, c.reward.copy(alpha = 0.6f + 0.4f * flash.value), RideakTheme.shapes.medium)
                     .padding(RideakTheme.spacing.s)
                     .clearAndSetSemantics { contentDescription = "Badge débloqué : ${badge.title}" },
                 verticalAlignment = Alignment.CenterVertically,

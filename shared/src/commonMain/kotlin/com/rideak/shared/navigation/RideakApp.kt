@@ -121,7 +121,7 @@ private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
             composable<RideRoute> {
                 RideScreen(
                     onFinished = { rideId ->
-                        navController.navigate(RideSummaryRoute(rideId.value)) {
+                        navController.navigate(RideSummaryRoute(rideId.value, fresh = true)) {
                             popUpTo<RideRoute> { inclusive = true }
                         }
                     },
@@ -129,7 +129,8 @@ private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
                 )
             }
             composable<RideSummaryRoute> { entry ->
-                RideSummaryScreen(entry.toRoute<RideSummaryRoute>().rideId, onBack = { navController.popBackStack() })
+                val route = entry.toRoute<RideSummaryRoute>()
+                RideSummaryScreen(route.rideId, fresh = route.fresh, onBack = { navController.popBackStack() })
             }
         }
         LaunchedEffect(startRide) {
