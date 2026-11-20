@@ -44,6 +44,7 @@ import com.rideak.shared.feature.map.OfflineMapStore
 import com.rideak.shared.feature.map.OfflineMapUiState
 import com.rideak.shared.feature.map.OfflineMapViewModel
 import com.rideak.shared.feature.places.NewPlaces
+import com.rideak.shared.feature.onboarding.OnboardingScreen
 import com.rideak.shared.feature.places.PlaceSection
 import com.rideak.shared.feature.places.PlacesContent
 import com.rideak.shared.feature.places.PlacesUiState
@@ -87,7 +88,7 @@ class RideakUiTest {
                     single { RideRecorder(get(), { noGps }, MainScope(), { 0L }, { "id" }) }
                     single { AppInfo(isDebug = true) }
                     single { DeveloperSettings() }
-                    single { AppSettings(InMemorySettingsStorage()) }
+                    single { AppSettings(InMemorySettingsStorage(mapOf(AppSettings.ONBOARDING_DONE to true))) }
                     single<RegionSource> { RegionSource { emptyList() } }
                     viewModelOf(::PlacesViewModel)
                     single<OfflineMapStore> { FakeOfflineMapStore() }
@@ -123,6 +124,22 @@ class RideakUiTest {
         onNodeWithText("Profil").performClick()
         onNodeWithContentDescription("Niveau 1, Novice, 0 XP, prochain niveau à 100 XP").assertIsDisplayed()
         onNodeWithText("Sortie simulée").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun onboardingWalksThroughThreePanesThenStartsTheFirstRide() = runComposeUiTest {
+        var started = false
+        var skipped = false
+        setContent { RideakTheme { OnboardingScreen(onStartRide = { started = true }, onSkip = { skipped = true }) } }
+
+        onNodeWithText("EXPLORE TON MONDE À VÉLO").assertIsDisplayed()
+        onNodeWithText("SUIVANT").performClick()
+        onNodeWithText("DÉCOUVRE LES LIEUX CACHÉS").assertIsDisplayed()
+        onNodeWithText("SUIVANT").performClick()
+        onNodeWithText("TES TRACES RESTENT SUR TON TÉLÉPHONE").assertIsDisplayed()
+        onNodeWithText("PARTIR\nÀ L'AVENTURE").assertHeightIsAtLeast(48.dp).performClick()
+        assertTrue(started)
+        assertTrue(!skipped)
     }
 
     @Test

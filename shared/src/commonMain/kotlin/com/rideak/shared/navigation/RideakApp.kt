@@ -4,7 +4,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -19,75 +23,104 @@ import com.rideak.shared.designsystem.components.RideakBottomBar
 import com.rideak.shared.feature.home.HomeScreen
 import com.rideak.shared.feature.map.WorldMapScreen
 import com.rideak.shared.feature.legal.LegalScreen
+import com.rideak.shared.feature.onboarding.OnboardingScreen
 import com.rideak.shared.feature.places.PlacesScreen
 import com.rideak.shared.feature.profile.ProfileScreen
 import com.rideak.shared.feature.ride.RideScreen
 import com.rideak.shared.feature.rides.RidesScreen
 import com.rideak.shared.feature.summary.RideSummaryScreen
+import com.rideak.shared.settings.AppSettings
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.koinInject
 
 /** Root of the shared UI, hosted by the Android Activity and the iOS UIViewController. */
 @Composable
 fun RideakApp() {
     RideakTheme {
-        val navController = rememberNavController()
-        val backStackEntry by navController.currentBackStackEntryAsState()
-        val destination = backStackEntry?.destination
-        val selectedIndex = topLevelDestinations.indexOfFirst { top ->
-            destination?.hierarchy?.any { it.hasRoute(top.route::class) } == true
+        val settings = koinInject<AppSettings>()
+        val onboardingDone by settings.onboardingDone.collectAsStateWithLifecycle()
+        // Set by the onboarding's last button: the ride screen opens (and asks for the location) right after.
+        var startRide by rememberSaveable { mutableStateOf(false) }
+        if (!onboardingDone) {
+            OnboardingScreen(
+                onStartRide = {
+                    startRide = true
+                    settings.setOnboardingDone()
+                },
+                onSkip = settings::setOnboardingDone,
+            )
+        } else {
+            MainNavigation(startRide, onRideStarted = { startRide = false })
         }
+    }
+}
 
-        Scaffold(
-            containerColor = RideakTheme.colors.night,
-            // Screens handle the status bar themselves: Home draws its hero under it.
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            bottomBar = {
-                // Hidden on full-screen destinations (ride, summary).
-                if (selectedIndex >= 0) {
-                    RideakBottomBar(
-                        items = topLevelDestinations.map { it.item },
-                        selectedIndex = selectedIndex,
-                        onSelect = { index ->
-                            navController.navigate(topLevelDestinations[index].route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                    )
-                }
-            },
-        ) { padding ->
-            NavHost(navController, startDestination = HomeRoute, modifier = Modifier.padding(padding)) {
-                composable<HomeRoute> { HomeScreen(onRide = { navController.navigate(RideRoute) { launchSingleTop = true } }) }
-                composable<MapRoute> { WorldMapScreen() }
-                composable<RidesRoute> {
-                    RidesScreen(
-                        onOpenRide = { navController.navigate(RideSummaryRoute(it)) },
-                        onStartRide = { navController.navigate(RideRoute) { launchSingleTop = true } },
-                    )
-                }
-                composable<PlacesRoute> { PlacesScreen() }
-                composable<ProfileRoute> {
-                    ProfileScreen(
-                        onPrivacyPolicy = { navController.navigate(PrivacyPolicyRoute) },
-                        onCredits = { navController.navigate(CreditsRoute) },
-                    )
-                }
-                composable<PrivacyPolicyRoute> { LegalScreen("files/legal/privacy_policy.md", onBack = { navController.popBackStack() }) }
-                composable<CreditsRoute> { LegalScreen("files/legal/credits.md", onBack = { navController.popBackStack() }) }
-                composable<RideRoute> {
-                    RideScreen(
-                        onFinished = { rideId ->
-                            navController.navigate(RideSummaryRoute(rideId.value)) {
-                                popUpTo<RideRoute> { inclusive = true }
-                            }
-                        },
-                        onMinimize = { navController.popBackStack() },
-                    )
-                }
-                composable<RideSummaryRoute> { entry ->
-                    RideSummaryScreen(entry.toRoute<RideSummaryRoute>().rideId, onBack = { navController.popBackStack() })
-                }
+@Composable
+private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val destination = backStackEntry?.destination
+    val selectedIndex = topLevelDestinations.indexOfFirst { top ->
+        destination?.hierarchy?.any { it.hasRoute(top.route::class) } == true
+    }
+
+    Scaffold(
+        containerColor = RideakTheme.colors.night,
+        // Screens handle the status bar themselves: Home draws its hero under it.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        bottomBar = {
+            // Hidden on full-screen destinations (ride, summary).
+            if (selectedIndex >= 0) {
+                RideakBottomBar(
+                    items = topLevelDestinations.map { it.item },
+                    selectedIndex = selectedIndex,
+                    onSelect = { index ->
+                        navController.navigate(topLevelDestinations[index].route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                )
+            }
+        },
+    ) { padding ->
+        NavHost(navController, startDestination = HomeRoute, modifier = Modifier.padding(padding)) {
+            composable<HomeRoute> { HomeScreen(onRide = { navController.navigate(RideRoute) { launchSingleTop = true } }) }
+            composable<MapRoute> { WorldMapScreen() }
+            composable<RidesRoute> {
+                RidesScreen(
+                    onOpenRide = { navController.navigate(RideSummaryRoute(it)) },
+                    onStartRide = { navController.navigate(RideRoute) { launchSingleTop = true } },
+                )
+            }
+            composable<PlacesRoute> { PlacesScreen() }
+            composable<ProfileRoute> {
+                ProfileScreen(
+                    onPrivacyPolicy = { navController.navigate(PrivacyPolicyRoute) },
+                    onCredits = { navController.navigate(CreditsRoute) },
+                )
+            }
+            composable<PrivacyPolicyRoute> { LegalScreen("files/legal/privacy_policy.md", onBack = { navController.popBackStack() }) }
+            composable<CreditsRoute> { LegalScreen("files/legal/credits.md", onBack = { navController.popBackStack() }) }
+            composable<RideRoute> {
+                RideScreen(
+                    onFinished = { rideId ->
+                        navController.navigate(RideSummaryRoute(rideId.value)) {
+                            popUpTo<RideRoute> { inclusive = true }
+                        }
+                    },
+                    onMinimize = { navController.popBackStack() },
+                )
+            }
+            composable<RideSummaryRoute> { entry ->
+                RideSummaryScreen(entry.toRoute<RideSummaryRoute>().rideId, onBack = { navController.popBackStack() })
+            }
+        }
+        LaunchedEffect(startRide) {
+            if (startRide) {
+                onRideStarted()
+                navController.navigate(RideRoute) { launchSingleTop = true }
             }
         }
     }

@@ -33,7 +33,18 @@ class AppSettings(private val storage: SettingsStorage) {
         _keepScreenOn.value = enabled
     }
 
+    private val _onboardingDone = MutableStateFlow(storage.getBoolean(ONBOARDING_DONE, default = false))
+
+    /** The first-launch onboarding was seen (finished or skipped): it is never shown again. */
+    val onboardingDone: StateFlow<Boolean> = _onboardingDone.asStateFlow()
+
+    fun setOnboardingDone() {
+        storage.putBoolean(ONBOARDING_DONE, true)
+        _onboardingDone.value = true
+    }
+
     companion object {
         const val KEEP_SCREEN_ON = "keep_screen_on"
+        const val ONBOARDING_DONE = "onboarding_done"
     }
 }

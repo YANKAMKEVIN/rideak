@@ -16,4 +16,12 @@ class AppSettingsTest {
         AppSettings(storage).setKeepScreenOn(false)
         assertFalse(AppSettings(storage).keepScreenOn.value)
     }
+
+    @Test
+    fun onboardingIsShownUntilSeenOnce() {
+        val storage = InMemorySettingsStorage()
+        assertFalse(AppSettings(storage).onboardingDone.value)
+        AppSettings(storage).setOnboardingDone()
+        assertTrue(AppSettings(storage).onboardingDone.value)
+    }
 }
