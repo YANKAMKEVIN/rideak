@@ -112,8 +112,14 @@ fun RideScreen(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is RideEvent.Finished -> onFinished(event.rideId)
-                RideEvent.SpotSaved -> feedback = "❤️ Spot enregistré"
+                is RideEvent.Finished -> {
+                    haptics.rideSaved()
+                    onFinished(event.rideId)
+                }
+                RideEvent.SpotSaved -> {
+                    feedback = "❤️ Spot enregistré"
+                    haptics.spotSaved()
+                }
                 RideEvent.SpotNeedsFix -> feedback = "Position GPS pas encore trouvée"
                 is RideEvent.PlaceDiscovered -> {
                     discovery = Discovery.Place(event.place.name)
@@ -160,13 +166,19 @@ fun RideScreen(
                 onResume = {
                     // A recovered ride can be resumed before any permission was granted.
                     when {
-                        simulated || permission.access == LocationAccess.PRECISE || permission.access == LocationAccess.APPROXIMATE ->
+                        simulated || permission.access == LocationAccess.PRECISE || permission.access == LocationAccess.APPROXIMATE -> {
+                            haptics.resumed()
                             viewModel.resume()
+                        }
                         permission.access == LocationAccess.DENIED -> permission.openSettings()
                         else -> permission.request()
                     }
                 },
                 onMinimize = onMinimize,
+                onPause = {
+                    haptics.paused()
+                    viewModel.pause()
+                },
             )
             canRecord -> {
                 LaunchedEffect(Unit) { viewModel.startOnce() }
@@ -191,6 +203,7 @@ private fun ActiveRide(
     onOpenLocationSettings: () -> Unit,
     onResume: () -> Unit,
     onMinimize: () -> Unit,
+    onPause: () -> Unit,
 ) {
     var confirmStop by remember { mutableStateOf(false) }
     // Set once the rider confirmed: the ride is being saved, the summary opens when the recorder is idle.
@@ -277,7 +290,7 @@ private fun ActiveRide(
                     SpeedAndMetrics(state, revealedCells)
                 }
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) { mapOverlay() }
-                Controls(paused, state.spotCount, vertical = true, enabled = !stopping, viewModel, onResume) { confirmStop = true }
+                Controls(paused, state.spotCount, vertical = true, enabled = !stopping, viewModel, onPause, onResume) { confirmStop = true }
             }
         } else {
             Column(Modifier.fillMaxSize()) {
@@ -298,7 +311,7 @@ private fun ActiveRide(
                         .windowInsetsPadding(WindowInsets.navigationBars)
                         .padding(vertical = RideakTheme.spacing.m),
                 ) {
-                    Controls(paused, state.spotCount, vertical = false, enabled = !stopping, viewModel, onResume) { confirmStop = true }
+                    Controls(paused, state.spotCount, vertical = false, enabled = !stopping, viewModel, onPause, onResume) { confirmStop = true }
                 }
             }
         }
@@ -423,6 +436,7 @@ private fun Controls(
     vertical: Boolean,
     enabled: Boolean,
     viewModel: RideViewModel,
+    onPause: () -> Unit,
     onResume: () -> Unit,
     onStop: () -> Unit,
 ) {
@@ -433,7 +447,7 @@ private fun Controls(
             RoundAction(RideakIcons.Play, "Reprendre la sortie", colors.nature, colors.onAccent, 96.dp, outline = colors.night, enabled = enabled, onClick = onResume)
         } else {
             Spacer(Modifier.size(72.dp))
-            RoundAction(RideakIcons.Pause, "Mettre en pause", colors.action, Color.White, 96.dp, outline = colors.night, enabled = enabled) { viewModel.pause() }
+            RoundAction(RideakIcons.Pause, "Mettre en pause", colors.action, Color.White, 96.dp, outline = colors.night, enabled = enabled, onClick = onPause)
         }
         RoundAction(RideakIcons.Heart, "J'aime cet endroit ($spotCount spots dans cette sortie)", colors.surface, colors.action, 72.dp, enabled = enabled) {
             viewModel.dropSpot()

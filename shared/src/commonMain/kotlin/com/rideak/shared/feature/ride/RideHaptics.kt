@@ -18,8 +18,31 @@ class RideHaptics(private val haptic: HapticFeedback, private val scope: Corouti
     /** A cell revealed for the first time: one light tick. */
     fun zoneRevealed() = play(listOf(HapticFeedbackType.SegmentTick))
 
-    /** A new place: two firm pulses. */
-    fun placeDiscovered() = play(listOf(HapticFeedbackType.Confirm, HapticFeedbackType.Confirm), gapMillis = 160)
+    /** A new place: three firm pulses. */
+    fun placeDiscovered() = play(listOf(HapticFeedbackType.Confirm, HapticFeedbackType.Confirm, HapticFeedbackType.Confirm))
+
+    /** Pause: one short pulse. */
+    fun paused() = play(listOf(HapticFeedbackType.ToggleOff))
+
+    /** Resume: two short pulses. */
+    fun resumed() = play(listOf(HapticFeedbackType.ToggleOn, HapticFeedbackType.ToggleOn), gapMillis = 100)
+
+    /** ❤️ spot saved: a heartbeat, strong then light. */
+    fun spotSaved() = play(listOf(HapticFeedbackType.LongPress, HapticFeedbackType.ContextClick), gapMillis = 140)
+
+    /**
+     * Ride saved: one long buzz, made of close pulses. The first is played at once: the screen
+     * (and this scope) goes away as the summary opens.
+     */
+    fun rideSaved() {
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        scope.launch {
+            repeat(2) {
+                delay(60)
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+        }
+    }
 
     private fun play(pulses: List<HapticFeedbackType>, gapMillis: Long = 120) {
         scope.launch {
