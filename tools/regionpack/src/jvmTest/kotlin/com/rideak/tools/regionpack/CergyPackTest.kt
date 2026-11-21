@@ -2,6 +2,7 @@ package com.rideak.tools.regionpack
 
 import com.rideak.exploration.ExplorationEngine
 import com.rideak.exploration.GeoPoint
+import com.rideak.exploration.PlaceCategory
 import com.rideak.exploration.PlaceDiscoverer
 import com.rideak.exploration.RegionPackCodec
 import com.rideak.exploration.TrackPoint
@@ -47,5 +48,13 @@ class CergyPackTest {
         assertTrue("Parc François Mitterrand" in names, "found $names")
         val progress = pack.region.progress(engine.cellsForSegments(listOf(loop)))
         assertTrue(progress.exploredRideableCells > 10, "explored ${progress.exploredRideableCells}")
+    }
+
+    @Test
+    fun noBusinessIsShownAsACuriosity() {
+        val ids = pack.places.map { it.id.value }.toSet()
+        assertTrue(excludedPlaces.none { it in ids }, "excluded places still in the pack: ${excludedPlaces.filter { it in ids }}")
+        val curiosities = pack.places.filter { it.category == PlaceCategory.LANDMARK }.map { it.name }
+        assertTrue("Axe Majeur" in curiosities && "Les Douze Colonnes" in curiosities, "found $curiosities")
     }
 }

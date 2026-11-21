@@ -13,7 +13,7 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
 | Moteur d'exploration V1 (interpolation, dérive, vitesse motorisée) | ✅ | `docs/exploration-model.md` |
 | « +N zones dévoilées » en fin de sortie | ✅ | `docs/exploration-model.md` |
 | Région Cergy : vrai %, 391 cellules praticables, contour sur la carte | ✅ | `docs/osm-data-strategy.md` |
-| 47 lieux à découvrir (onglet Lieux, « NOUVEL ENDROIT ! ») | ✅ | `docs/exploration-model.md` |
+| 45 lieux à découvrir (onglet Lieux, « NOUVEL ENDROIT ! ») | ✅ | `docs/exploration-model.md` |
 | Zones privées (suggestions, centre décalé, mode partage) | ✅ | `docs/privacy.md` |
 | XP, niveaux, 6 badges illustrés, compteurs par catégorie | ✅ | `docs/exploration-model.md` |
 | Carte hors ligne (Profil, ~45 Mo pour Cergy) | ✅ | `docs/spikes/maplibre.md` |
@@ -38,6 +38,9 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
   une sortie simulée complète (Profil → Outils de développement, ~10 min) suffit à les voir.
 - Filtres de « Ma carte » : message « Aucun … découvert pour l'instant » quand la catégorie choisie est vide,
   et masquage en mode partage d'un lieu dont le contour touche une zone privée : couverts par les tests seulement.
+- Filtre des curiosités (`isBusiness`) : écrit d'après les usages OSM, sans les vraies balises d'« Aeroscoot »
+  et « Baby Park » (OSM inaccessible depuis la session) ; ces deux-là sont écartés par identifiant. À la
+  prochaine régénération du pack, vérifier la liste « LANDMARK » affichée par l'outil.
 - Tous les seuils du moteur (dérive 15 m, 45 km/h, interpolation 60 s / 400 m, découverte 40 / 30 m)
   sont des premières estimations à valider sur de vraies sorties.
 
@@ -45,7 +48,6 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
 
 - Onboarding (illustration `design/generated/onboarding.webp` prête).
 - `CLBackgroundActivitySession` (iOS 17) pour fiabiliser la localisation en arrière-plan.
-- Resserrer le filtre des curiosités OSM (« Aeroscoot », « Baby Park » ressemblent à des commerces).
 
 ## Repères techniques
 

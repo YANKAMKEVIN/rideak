@@ -75,4 +75,42 @@ class RegionPackToolTest {
         assertEquals("way/1", oise.id.value)
         assertEquals(PlaceGeometry.MultiLineString(listOf(PlaceGeometry.LineString(listOf(GeoPoint(49.05, 2.05), GeoPoint(49.06, 2.06), GeoPoint(49.07, 2.07))))), oise.geometry)
     }
+
+    @Test
+    fun curiositiesThatAreBusinessesOrPlayAreasAreLeftOut() {
+        // Kept: the kind of curiosities the Cergy pack shows (Axe Majeur, Les Douze Colonnes, the park sculptures).
+        assertEquals(PlaceCategory.LANDMARK, categoryOf(mapOf("tourism" to "attraction", "name" to "Axe Majeur")))
+        assertEquals(PlaceCategory.LANDMARK, categoryOf(mapOf("tourism" to "artwork", "artwork_type" to "sculpture", "name" to "Les Douze Colonnes")))
+        assertEquals(PlaceCategory.LANDMARK, categoryOf(mapOf("tourism" to "artwork", "amenity" to "fountain", "name" to "Fontaine")))
+        assertEquals(PlaceCategory.LANDMARK, categoryOf(mapOf("tourism" to "attraction", "fee" to "no", "name" to "Belvédère")))
+        // Left out: how OSM usually tags a ride, a play park or a shop marked as an attraction.
+        assertNull(categoryOf(mapOf("tourism" to "attraction", "attraction" to "amusement_ride", "name" to "Aeroscoot")))
+        assertNull(categoryOf(mapOf("tourism" to "attraction", "leisure" to "playground", "name" to "Baby Park")))
+        assertNull(categoryOf(mapOf("tourism" to "attraction", "fee" to "yes", "name" to "Accrobranche")))
+        assertNull(categoryOf(mapOf("tourism" to "attraction", "phone" to "+33 1 00 00 00 00", "name" to "Location de pédalos")))
+        assertNull(categoryOf(mapOf("tourism" to "attraction", "shop" to "gift", "name" to "Boutique")))
+        assertNull(categoryOf(mapOf("tourism" to "attraction", "amenity" to "restaurant", "name" to "Guinguette")))
+        assertNull(categoryOf(mapOf("tourism" to "attraction", "sport" to "climbing", "name" to "Mur d'escalade")))
+        // The rule only applies to curiosities: a park with a phone number is still a park.
+        assertEquals(PlaceCategory.PARK, categoryOf(mapOf("leisure" to "park", "phone" to "+33 1 00 00 00 00")))
+        assertEquals(PlaceCategory.MONUMENT, categoryOf(mapOf("historic" to "castle", "fee" to "yes")))
+    }
+
+    @Test
+    fun excludedElementsNeverReachThePack() {
+        val boundary = listOf(PlaceGeometry.Polygon(listOf(GeoPoint(49.0, 2.0), GeoPoint(49.0, 2.1), GeoPoint(49.1, 2.1), GeoPoint(49.1, 2.0))))
+        fun node(id: Long, name: String, lat: Double, lon: Double) = Json.parseToJsonElement(
+            """{"type":"node","id":$id,"lat":$lat,"lon":$lon,"tags":{"tourism":"attraction","name":"$name"}}""",
+        ).jsonObject
+        // The real ids and positions of the first Cergy pack, with bare tags that isBusiness cannot catch.
+        val places = placesOf(
+            listOf(
+                node(6873617685, "Aeroscoot", 49.0272, 2.051784),
+                node(11611881631, "Baby Park", 49.025726, 2.052004),
+                node(262554703, "Les Douze Colonnes", 49.042205, 2.03783),
+            ),
+            boundary,
+        )
+        assertEquals(listOf("Les Douze Colonnes"), places.map { it.name })
+    }
 }
