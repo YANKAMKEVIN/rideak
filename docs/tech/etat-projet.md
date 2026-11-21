@@ -18,6 +18,7 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
 | XP, niveaux, 6 badges illustrés, compteurs par catégorie | ✅ | `docs/exploration-model.md` |
 | Carte hors ligne (Profil, ~45 Mo pour Cergy) | ✅ | `docs/spikes/maplibre.md` |
 | « Ma carte » : épingles des lieux découverts, cartes du carrousel = filtres par catégorie | ✅ | `MapViewModel.kt` |
+| Onboarding au premier lancement (3 pages, « déjà vu » mémorisé) | ✅ | `OnboardingScreen.kt`, `AppSettings.kt` |
 | Politique de confidentialité, crédits, « Effacer toutes mes données » | ✅ | `docs/privacy.md` |
 | Licence ODbL des packs de régions | ✅ (choix) | `docs/licenses/region-packs-ODbL.md` |
 | iOS 17.0 minimum | ✅ | `docs/spikes/maplibre.md` |
@@ -31,6 +32,8 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
    (licence ODbL) et mettre le lien dans `credits.md`.
 3. **Tests sur iPhone** : carte hors ligne en mode avion ; app sous iOS 17 (avertissement de liaison
    restant sur `libicu.icudtl_dat.o`, données seules, risque faible).
+4. **PR n° 1** (`claude/stoic-hofstadter-5e01cb`, filtres de carte) : remplacée par ce qui est sur `main` ;
+   ses trois apports utiles ont été repris sur `claude/suite`. Elle peut être fermée sans fusion.
 
 ## Non vérifié en vrai (seulement par tests)
 
@@ -46,8 +49,10 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
 
 ## Prochaines tâches possibles
 
-- Onboarding (illustration `design/generated/onboarding.webp` prête).
-- `CLBackgroundActivitySession` (iOS 17) pour fiabiliser la localisation en arrière-plan.
+- `CLBackgroundActivitySession` (iOS 17) pour fiabiliser la localisation en arrière-plan : à faire sur Mac.
+  Dans `IosLocationSource`, créer la session juste avant `startUpdatingLocation()` et appeler `invalidate()`
+  dans `awaitClose`. Non fait depuis Linux : le nom Kotlin/Native de la fabrique
+  (`CLBackgroundActivitySession()` ou `backgroundActivitySession()`) ne peut pas être vérifié sans compiler.
 
 ## Repères techniques
 
