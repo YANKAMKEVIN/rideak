@@ -67,4 +67,31 @@ class PrivacyTest {
         assertNotEquals(suggestions[0], afterProtectingHome[0])
         assertFalse(afterProtectingHome[0].position in zone)
     }
+
+    @Test
+    fun aPlaceTouchingAZoneIsHiddenEvenWithItsPinOutside() {
+        val mask = PrivacyMask(listOf(zone))
+        // A 1.2 km wide park whose west corner is 100 m from home: its pin (average of the ring) is far outside.
+        val corner = home.offset(0.0, 100.0)
+        val park = Place(
+            PlaceId("park"), "Parc", PlaceCategory.PARK,
+            PlaceGeometry.Polygon(listOf(corner, corner.offset(0.0, 1_200.0), corner.offset(800.0, 1_200.0), corner.offset(800.0, 0.0))),
+        )
+        assertFalse(park.anchor in zone)
+        assertTrue(mask.hides(park))
+        // A river passing 200 m from home, split into two ways.
+        val river = Place(
+            PlaceId("river"), "L'Oise", PlaceCategory.RIVER,
+            PlaceGeometry.MultiLineString(
+                listOf(
+                    PlaceGeometry.LineString(listOf(home.offset(200.0, -3_000.0), home.offset(200.0, 0.0))),
+                    PlaceGeometry.LineString(listOf(home.offset(200.0, 0.0), home.offset(200.0, 3_000.0))),
+                ),
+            ),
+        )
+        assertTrue(mask.hides(river))
+        val farMonument = Place(PlaceId("m"), "Pyramide", PlaceCategory.LANDMARK, PlaceGeometry.Point(home.offset(1_000.0, 0.0)))
+        assertFalse(mask.hides(farMonument))
+        assertFalse(PrivacyMask(emptyList()).hides(park), "no zone hides nothing")
+    }
 }

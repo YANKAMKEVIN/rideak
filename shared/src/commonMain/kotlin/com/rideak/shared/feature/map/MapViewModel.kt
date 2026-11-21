@@ -27,19 +27,28 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 
 data class MapCamera(val latitude: Double, val longitude: Double, val zoom: Double)
 
 /** A carousel card used as a filter: which discovered places stay on the map. Null categories: all of them. */
-enum class MapFilter(val categories: Set<PlaceCategory>?) {
+enum class MapFilter(val categories: Set<PlaceCategory>?, private val nothingYet: String = "") {
     ALL(null),
-    CITIES(setOf(PlaceCategory.MONUMENT, PlaceCategory.LANDMARK)),
-    PARKS(setOf(PlaceCategory.PARK)),
-    RIVERS(setOf(PlaceCategory.RIVER, PlaceCategory.LAKE)),
-    FORESTS(setOf(PlaceCategory.FOREST)),
+    CITIES(setOf(PlaceCategory.MONUMENT, PlaceCategory.LANDMARK), "Aucun monument ni curiosité découvert pour l'instant"),
+    PARKS(setOf(PlaceCategory.PARK), "Aucun parc découvert pour l'instant"),
+    RIVERS(setOf(PlaceCategory.RIVER, PlaceCategory.LAKE), "Aucune rivière ni plan d'eau découvert pour l'instant"),
+    FORESTS(setOf(PlaceCategory.FOREST), "Aucune forêt découverte pour l'instant"),
+    ;
+
+    /**
+     * What the map says when this card is selected but none of its places is discovered yet, rather
+     * than an unchanged map. Null for "Tout", or once one is found (even if share mode hides it).
+     */
+    fun emptyHint(places: Map<PlaceCategory, Counter>): String? {
+        val categories = categories ?: return null
+        return if (categories.sumOf { places[it]?.found ?: 0 } == 0) "$nothingYet : pars à leur recherche !" else null
+    }
 }
 
 /** The four illustrated pins (design/generated/pin_*.webp) and the categories each one marks. */
@@ -71,6 +80,8 @@ data class WorldMapUiState(
     val filter: MapFilter = MapFilter.ALL,
     /** Discovered places kept by [filter] (names for screen readers, positions for the camera). */
     val shownPlaces: List<Place> = emptyList(),
+    /** Set when the selected card has nothing discovered yet ([MapFilter.emptyHint]). */
+    val emptyFilterHint: String? = null,
     /** The rider's privacy zones, drawn for them only (never in share mode). */
     val privacyZones: String = GeoJson.circles(emptyList()),
     val hasPrivacyZones: Boolean = false,
@@ -104,17 +115,17 @@ class MapViewModel(
     /**
      * Recomputed whenever finished rides change (like Home and Places): the map tab is kept alive,
      * so a ride finished meanwhile must appear and "delete all my data" must clear the tracks.
+     * The debug stress ride is followed too, so toggling it shows without leaving the tab.
      */
-    private val ridden = repository.observeFinishedRides().map { loadRidden() }
+    private val ridden = combine(repository.observeFinishedRides(), developer.mapStressTest) { _, stress -> loadRidden(stress) }
 
     val state: StateFlow<WorldMapUiState> =
         combine(ridden, privacy.observeZones(), shareMode, filter) { ridden, zones, share, filter ->
             withContext(Dispatchers.Default) { build(ridden, zones, share, filter) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WorldMapUiState())
 
-    private suspend fun loadRidden(): Ridden {
-        val track = repository.finishedSegments() +
-            if (developer.mapStressTest.value) listOf(stressTrack()) else emptyList()
+    private suspend fun loadRidden(stress: Boolean): Ridden {
+        val track = repository.finishedSegments() + if (stress) listOf(stressTrack()) else emptyList()
         val spots = repository.finishedSpots().map { it.position }
         val packs = regions.packs()
         return withContext(Dispatchers.Default) {
@@ -146,10 +157,10 @@ class MapViewModel(
         val mask = PrivacyMask(if (share) zones else emptyList())
         val cells = mask.cells(ridden.explored, grid).mapNotNull(grid::boundsOf)
         val all = ridden.segments.flatten() + ridden.spots
-        // Share mode also hides discovered places lying in a privacy zone.
+        // Share mode also hides discovered places touching a privacy zone.
         val shown = ridden.discovered
             .filter { filter.categories == null || it.category in filter.categories }
-            .filterNot { mask.hides(it.anchor) }
+            .filterNot(mask::hides)
         // A filter frames its places; without one, everything ridden.
         val framed = if (filter != MapFilter.ALL && shown.isNotEmpty()) shown.map { it.anchor } else all
         return WorldMapUiState(
@@ -168,6 +179,7 @@ class MapViewModel(
             placePins = PlacePin.entries.associateWith { pin -> GeoJson.points(shown.filter { it.category in pin.categories }.map { it.anchor }) },
             filter = filter,
             shownPlaces = shown,
+            emptyFilterHint = filter.emptyHint(ridden.places),
             privacyZones = GeoJson.circles(if (share) emptyList() else zones),
             hasPrivacyZones = zones.isNotEmpty(),
             shareMode = share,

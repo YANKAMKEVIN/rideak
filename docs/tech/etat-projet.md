@@ -1,6 +1,6 @@
 # État du projet RIDEAK
 
-Mis à jour le 31 octobre 2026. Point d'entrée pour reprendre le travail dans une session neuve.
+Mis à jour le 21 novembre 2026. Point d'entrée pour reprendre le travail dans une session neuve.
 
 ## Où on en est
 
@@ -17,6 +17,7 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
 | Zones privées (suggestions, centre décalé, mode partage) | ✅ | `docs/privacy.md` |
 | XP, niveaux, 6 badges illustrés, compteurs par catégorie | ✅ | `docs/exploration-model.md` |
 | Carte hors ligne (Profil, ~45 Mo pour Cergy) | ✅ | `docs/spikes/maplibre.md` |
+| « Ma carte » : épingles des lieux découverts, cartes du carrousel = filtres par catégorie | ✅ | `MapViewModel.kt` |
 | Politique de confidentialité, crédits, « Effacer toutes mes données » | ✅ | `docs/privacy.md` |
 | Licence ODbL des packs de régions | ✅ (choix) | `docs/licenses/region-packs-ODbL.md` |
 | iOS 17.0 minimum | ✅ | `docs/spikes/maplibre.md` |
@@ -35,12 +36,13 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
 
 - Bloc « NOUVEL ENDROIT ! » et récompenses de fin de sortie (« +N XP », badge débloqué) :
   une sortie simulée complète (Profil → Outils de développement, ~10 min) suffit à les voir.
+- Filtres de « Ma carte » : message « Aucun … découvert pour l'instant » quand la catégorie choisie est vide,
+  et masquage en mode partage d'un lieu dont le contour touche une zone privée : couverts par les tests seulement.
 - Tous les seuils du moteur (dérive 15 m, 45 km/h, interpolation 60 s / 400 m, découverte 40 / 30 m)
   sont des premières estimations à valider sur de vraies sorties.
 
 ## Prochaines tâches possibles
 
-- Filtres de carte par catégorie (le carrousel de « Ma carte » n'affiche que des compteurs).
 - Onboarding (illustration `design/generated/onboarding.webp` prête).
 - `CLBackgroundActivitySession` (iOS 17) pour fiabiliser la localisation en arrière-plan.
 - Resserrer le filtre des curiosités OSM (« Aeroscoot », « Baby Park » ressemblent à des commerces).
