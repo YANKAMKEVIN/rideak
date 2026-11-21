@@ -28,6 +28,7 @@ import kotlinx.coroutines.withTimeout
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /** The map tab stays alive: it must follow finished rides, not load them once. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -97,5 +98,14 @@ class MapViewModelTest {
 
         vm.selectFilter(MapFilter.PARKS)
         vm.awaitState { it.filter == MapFilter.ALL && it.shownPlaces.size == 2 }
+    }
+
+    @Test
+    fun aCardWithNothingDiscoveredSaysSo() {
+        val places = mapOf(PlaceCategory.PARK to Counter(1, 4), PlaceCategory.LAKE to Counter(0, 2), PlaceCategory.RIVER to Counter(0, 1))
+        assertNull(MapFilter.ALL.emptyHint(places))
+        assertNull(MapFilter.PARKS.emptyHint(places))
+        assertEquals("Aucune rivière ni plan d'eau découvert pour l'instant : pars à leur recherche !", MapFilter.RIVERS.emptyHint(places))
+        assertEquals("Aucune forêt découverte pour l'instant : pars à leur recherche !", MapFilter.FORESTS.emptyHint(places), "no forest in the region")
     }
 }

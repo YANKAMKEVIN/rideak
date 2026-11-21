@@ -63,6 +63,13 @@ class PrivacyMask(private val zones: List<PrivacyZone>) {
 
     fun points(points: List<GeoPoint>): List<GeoPoint> = points.filterNot(::hides)
 
+    /**
+     * A discovered place is hidden when its pin or any point of its outline lies in a zone: a park
+     * whose edge touches home would still say where the rider lives, wherever its pin stands.
+     */
+    fun hides(place: Place): Boolean =
+        zones.isNotEmpty() && (hides(place.anchor) || place.geometry.vertices().any(::hides))
+
     /** Cells touching a zone are hidden too: explored cells alone would draw the outline of a home. */
     fun cells(cells: Collection<CellId>, grid: CellGrid): List<CellId> = cells.filter { cell ->
         val b = grid.boundsOf(cell) ?: return@filter true
@@ -105,3 +112,11 @@ fun GeoPoint.offset(northMeters: Double, eastMeters: Double): GeoPoint = GeoPoin
     latitude + northMeters / 111_195.0,
     longitude + eastMeters / (111_195.0 * cos(latitude * PI / 180)),
 )
+
+private fun PlaceGeometry.vertices(): List<GeoPoint> = when (this) {
+    is PlaceGeometry.Point -> listOf(position)
+    is PlaceGeometry.LineString -> points
+    is PlaceGeometry.MultiLineString -> lines.flatMap { it.points }
+    is PlaceGeometry.Polygon -> exterior + holes.flatten()
+    is PlaceGeometry.MultiPolygon -> polygons.flatMap { it.exterior + it.holes.flatten() }
+}

@@ -37,12 +37,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
 import com.rideak.exploration.Place
 import com.rideak.exploration.PlaceCategory
 import com.rideak.exploration.anchor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -132,6 +134,7 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else {
                 ExplorationMap(state, MapTab.entries[tab], focusedPlace, onFocused = focus::consume)
+                state.emptyFilterHint?.let { EmptyFilterHint(it, Modifier.align(Alignment.TopCenter).padding(12.dp)) }
                 if (MapTab.entries[tab] == MapTab.Exploration) {
                     TerritoryCard(
                         state.exploredCells,
@@ -144,6 +147,22 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
         }
         CategoryCarousel(state, onSelect = viewModel::selectFilter)
     }
+}
+
+/** A selected card with nothing discovered yet: say so rather than show an unchanged map. */
+@Composable
+private fun EmptyFilterHint(text: String, modifier: Modifier = Modifier) {
+    val colors = RideakTheme.colors
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        color = colors.textPrimary,
+        textAlign = TextAlign.Center,
+        modifier = modifier
+            .background(colors.night.copy(alpha = 0.8f), RideakTheme.shapes.medium)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    )
 }
 
 @Composable

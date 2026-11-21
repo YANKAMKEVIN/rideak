@@ -1,7 +1,7 @@
 # Stratégie de données OpenStreetMap
 
 Premier pack : **Cergy** (`shared/src/commonMain/composeResources/files/regions/cergy.region`, 28 Ko,
-391 cellules praticables, 47 lieux). C'est une base de données dérivée d'OSM : voir la section Licence avant toute publication.
+391 cellules praticables, 45 lieux). C'est une base de données dérivée d'OSM : voir la section Licence avant toute publication.
 
 ## Usages prévus
 
@@ -80,6 +80,11 @@ Pour plusieurs régions ou des mises à jour régulières, passer à l'extrait G
   exclus : `motorway|trunk`, `bicycle=no|dismount`, `access=private|no` (sauf vélo explicitement autorisé), `service=driveway`.
 - **Lieux** : `leisure=park`, `landuse=forest` / `natural=wood`, `natural=water` + `water=lake|pond`,
   `waterway=river`, `tourism=viewpoint`, `historic=monument|memorial`, `tourism=attraction`.
+  Une curiosité (`tourism=attraction|artwork`) qui est en fait un commerce ou une aire de jeux est écartée
+  (`isBusiness` : `shop`, `craft`, `office`, `brand`, téléphone, e-mail, `sport`, `fee=yes`, `leisure=playground…`,
+  `attraction=amusement_ride…`, `amenity` autre que fontaine, horloge, lieu de culte, banc). Les éléments que
+  ces règles ne voient pas sont écartés par identifiant (`excludedPlaces` : « Aeroscoot » et « Baby Park »
+  de l'Île de loisirs, retirés du pack Cergy à la main, la régénération n'ayant pas pu être relancée).
 
 ## Licence ODbL — obligations (synthèse, pas un avis juridique)
 

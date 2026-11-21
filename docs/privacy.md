@@ -30,7 +30,8 @@ Ce sont des données personnelles au sens du RGPD.
     aléatoire et agrandit le rayon jusqu'à +25 % (400 m demandés → 400–500 m). **Seule la zone décalée est
     stockée**, jamais le point protégé.
   - **Masquage** : tracé coupé à l'entrée de la zone, spots retirés, et **cellules qui touchent la zone retirées**
-    (sinon les cellules explorées dessineraient le contour du domicile).
+    (sinon les cellules explorées dessineraient le contour du domicile). Les **lieux découverts** dont l'épingle
+    ou un point du contour est dans une zone sont retirés aussi (`PrivacyMask.hides(place)`).
   - **Mode partage** sur « Ma carte » : applique le masque et cache le dessin des zones elles-mêmes, pour une
     capture d'écran. Hors mode partage, l'utilisateur voit tout, zones comprises (voile gris).
 - **La confidentialité précède le social** : aucune fonctionnalité de partage avant que les
