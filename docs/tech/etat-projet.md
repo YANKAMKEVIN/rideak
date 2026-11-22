@@ -1,6 +1,6 @@
 # État du projet RIDEAK
 
-Mis à jour le 21 novembre 2026. Point d'entrée pour reprendre le travail dans une session neuve.
+Mis à jour le 22 novembre 2026. Point d'entrée pour reprendre le travail dans une session neuve.
 
 ## Où on en est
 
@@ -41,6 +41,10 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
   une sortie simulée complète (Profil → Outils de développement, ~10 min) suffit à les voir.
 - Filtres de « Ma carte » : message « Aucun … découvert pour l'instant » quand la catégorie choisie est vide,
   et masquage en mode partage d'un lieu dont le contour touche une zone privée : couverts par les tests seulement.
+- Lieu ouvert depuis « Lieux » alors qu'une carte du carrousel en masque la catégorie : le filtre repasse
+  sur « Tout » pour que l'épingle soit visible (`MapViewModel.reveal`), vérifié par les tests seulement.
+- Bouton de « Mes sorties » vide pendant une sortie : « RETOUR À LA SORTIE » / « SORTIE INTERROMPUE »,
+  comme l'accueil (`rideButtonLabel`), vérifié par les tests seulement.
 - Filtre des curiosités (`isBusiness`) : écrit d'après les usages OSM, sans les vraies balises d'« Aeroscoot »
   et « Baby Park » (OSM inaccessible depuis la session) ; ces deux-là sont écartés par identifiant. À la
   prochaine régénération du pack, vérifier la liste « LANDMARK » affichée par l'outil.
@@ -54,9 +58,14 @@ Branche `main`, à jour avec `origin`, CI verte. Tout ce qui suit est fusionné.
   dans `awaitClose`. Non fait depuis Linux : le nom Kotlin/Native de la fabrique
   (`CLBackgroundActivitySession()` ou `backgroundActivitySession()`) ne peut pas être vérifié sans compiler.
 
+- Coûts de calcul à mesurer sur de vraies données avant d'optimiser (décision à prendre) : l'exploration
+  est recalculée depuis tous les points à chaque changement des sorties (accueil, carte, lieux, profil,
+  « Mes sorties »), et la découverte en direct rejoue toute la trace de la sortie toutes les 3 s.
+  La copie de la trace en direct à chaque seconde, elle, est supprimée (`GrowingTrack`).
+
 ## Repères techniques
 
 - Build et tests : voir `README.md` (JDK = JBR d'Android Studio).
-- Suite complète : `./gradlew :core:exploration:jvmTest :core:data:jvmTest :tools:regionpack:jvmTest :shared:iosSimulatorArm64Test :androidApp:assembleDebug :androidApp:lintDebug`
+- Suite complète : `./gradlew :core:exploration:jvmTest :core:ride:jvmTest :core:data:jvmTest :tools:regionpack:jvmTest :shared:iosSimulatorArm64Test :androidApp:assembleDebug :androidApp:lintDebug`
 - Régénérer un pack région : `docs/osm-data-strategy.md` (requêtes Overpass + `:tools:regionpack:run`).
 - Machine de dev chargée en mémoire : compilations lentes si deux simulateurs iOS tournent avec Android Studio.
