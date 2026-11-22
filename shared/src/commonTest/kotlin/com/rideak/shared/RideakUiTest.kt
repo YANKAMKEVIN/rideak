@@ -22,7 +22,7 @@ import com.rideak.data.location.LocationSource
 import com.rideak.data.location.LocationSourceSelector
 import com.rideak.data.recorder.RideRecorder
 import com.rideak.shared.di.AppInfo
-import com.rideak.shared.di.DeveloperSettings
+import com.rideak.shared.di.uiStateModule
 import com.rideak.shared.settings.AppSettings
 import com.rideak.shared.settings.InMemorySettingsStorage
 import com.rideak.shared.feature.home.HomeViewModel
@@ -36,7 +36,6 @@ import kotlin.test.assertEquals
 import com.rideak.shared.feature.rides.RidesScreen
 import com.rideak.shared.feature.rides.RidesViewModel
 import com.rideak.shared.feature.places.PlacesViewModel
-import com.rideak.shared.feature.places.PlacesFocus
 import com.rideak.shared.feature.legal.LegalDocument
 import com.rideak.shared.feature.legal.parseMarkdown
 import com.rideak.shared.feature.map.OfflineMapSection
@@ -81,6 +80,7 @@ class RideakUiTest {
     fun startDi() {
         startKoin {
             modules(
+                uiStateModule,
                 module {
                     val noGps = LocationSource { emptyFlow() }
                     single<RideRepository> { FakeRideRepository() }
@@ -88,8 +88,6 @@ class RideakUiTest {
                     single { LocationSourceSelector(noGps, noGps) }
                     single { RideRecorder(get(), { noGps }, MainScope(), { 0L }, { "id" }) }
                     single { AppInfo(isDebug = true) }
-                    single { DeveloperSettings() }
-                    single { PlacesFocus() }
                     single { AppSettings(InMemorySettingsStorage(mapOf(AppSettings.ONBOARDING_DONE to true))) }
                     single<RegionSource> { RegionSource { emptyList() } }
                     viewModelOf(::PlacesViewModel)
