@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rideak.data.recorder.RecorderState
 import com.rideak.exploration.GeoPoint
 import com.rideak.ride.RideSummary
 import kotlin.math.PI
@@ -50,6 +51,7 @@ import kotlin.math.cos
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.AdventureButton
 import com.rideak.shared.designsystem.icons.RideakIcons
+import com.rideak.shared.feature.ride.rideButtonLabel
 import com.rideak.shared.format.formatDurationShort
 import com.rideak.shared.format.formatKilometers
 import com.rideak.shared.format.formatKmh
@@ -57,7 +59,13 @@ import com.rideak.shared.format.formatRideTitle
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun RidesScreen(onOpenRide: (String) -> Unit, onStartRide: () -> Unit = {}, viewModel: RidesViewModel = koinViewModel()) {
+fun RidesScreen(
+    onOpenRide: (String) -> Unit,
+    onStartRide: () -> Unit = {},
+    /** The ride under way, if any: the empty list's button then goes back to it, like the home button. */
+    activeRide: RecorderState.Active? = null,
+    viewModel: RidesViewModel = koinViewModel(),
+) {
     val months by viewModel.months.collectAsStateWithLifecycle()
     var toDelete by remember { mutableStateOf<RideSummary?>(null) }
     Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).padding(horizontal = RideakTheme.spacing.m)) {
@@ -73,7 +81,7 @@ fun RidesScreen(onOpenRide: (String) -> Unit, onStartRide: () -> Unit = {}, view
             list == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = RideakTheme.colors.exploration)
             }
-            list.isEmpty() -> EmptyRides(onStartRide)
+            list.isEmpty() -> EmptyRides(rideButtonLabel(activeRide), onStartRide)
             else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(RideakTheme.spacing.s)) {
                 list.forEach { month ->
                     item(key = month.title) { MonthHeader(month) }
@@ -112,7 +120,7 @@ private fun MonthHeader(month: RideMonth) {
 
 /** First launch: say what will appear here and offer to start right away instead of a lone line of text. */
 @Composable
-private fun EmptyRides(onStartRide: () -> Unit) {
+private fun EmptyRides(buttonLabel: String, onStartRide: () -> Unit) {
     val c = RideakTheme.colors
     Column(
         Modifier.fillMaxSize().padding(bottom = RideakTheme.spacing.l),
@@ -138,7 +146,7 @@ private fun EmptyRides(onStartRide: () -> Unit) {
             color = c.textSecondary,
             textAlign = TextAlign.Center,
         )
-        AdventureButton("PARTIR\nÀ L'AVENTURE", onClick = onStartRide, icon = RideakIcons.Bike, minHeight = 64.dp)
+        AdventureButton(buttonLabel, onClick = onStartRide, icon = RideakIcons.Bike, minHeight = 64.dp)
     }
 }
 

@@ -28,6 +28,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -198,6 +199,26 @@ class RideRecorderTest {
         assertEquals(2, attempts)
         ride(seconds = 3)
         recorder.awaitSignal(GpsSignal.GOOD)
+        recorder.stop()
+    }
+
+    @Test
+    fun theLiveTrackIsOnlyRebuiltWhenAPositionArrives() = runTest {
+        val recorder = recorder()
+        recorder.start()
+        runCurrent()
+        ride(seconds = 5)
+        val track = recorder.active().track
+        assertEquals(5, track.size)
+
+        // Ticks without a fix republish the time, not a new copy of the track.
+        advanceTimeBy(3_000)
+        runCurrent()
+        assertSame(track, recorder.active().track)
+
+        ride(seconds = 2, fromMeters = 25.0)
+        assertEquals(7, recorder.active().track.size)
+        assertEquals(5, track.size, "a published track never changes")
         recorder.stop()
     }
 

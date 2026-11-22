@@ -112,9 +112,11 @@ fun WorldMapScreen(viewModel: MapViewModel = koinViewModel()) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val focus = koinInject<MapFocus>()
     val focusedPlace by focus.place.collectAsStateWithLifecycle()
-    // Opened on a place from "Lieux": back to a tab where places are pinned.
+    // Opened on a place from "Lieux": back to a tab where places are pinned, with a card that shows its pin.
     LaunchedEffect(focusedPlace) {
-        if (focusedPlace != null && MapTab.entries[tab] == MapTab.Rides) tab = MapTab.Exploration.ordinal
+        val place = focusedPlace ?: return@LaunchedEffect
+        if (MapTab.entries[tab] == MapTab.Rides) tab = MapTab.Exploration.ordinal
+        viewModel.reveal(place)
     }
     val colors = RideakTheme.colors
     Column(Modifier.fillMaxSize().background(colors.night).windowInsetsPadding(WindowInsets.statusBars)) {

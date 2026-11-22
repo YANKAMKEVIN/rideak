@@ -100,7 +100,7 @@ class RideRecorder(
         var locationFailed: Boolean = false,
         var lastFlushAt: Long,
         val buffer: MutableList<TrackPoint> = mutableListOf(),
-        val positions: MutableList<TrackPoint> = mutableListOf(),
+        val positions: GrowingTrack = GrowingTrack(),
     ) {
         val recording get() = segmentStartedAt != null
         fun activeDuration(now: Long) = activeBeforeSegment + (segmentStartedAt?.let { now - it } ?: 0)
@@ -130,7 +130,7 @@ class RideRecorder(
             spotCount = ride.spotCount,
             recovered = true,
             lastFlushAt = now,
-        ).also { recovered -> segments.flatten().filterTo(recovered.positions, ::drawable) }
+        ).also { recovered -> recovered.positions.addAll(segments.flatten().filter(::drawable)) }
         flush(RideStatus.PAUSED)
         publish()
     }
@@ -248,7 +248,7 @@ class RideRecorder(
         s.lastFixReceivedAt = clock()
         s.locationFailed = false
         s.buffer += point
-        if (drawable(point)) s.positions += point
+        if (drawable(point)) s.positions.add(point)
         if (s.buffer.size >= config.flushEveryPoints) flush(RideStatus.RECORDING)
         publish()
     }
@@ -276,7 +276,7 @@ class RideRecorder(
             signal = signal(s, now),
             spotCount = s.spotCount,
             recovered = s.recovered,
-            track = s.positions.toList(),
+            track = s.positions.snapshot(),
         )
     }
 
