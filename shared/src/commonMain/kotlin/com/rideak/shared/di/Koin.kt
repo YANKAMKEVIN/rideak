@@ -37,11 +37,20 @@ class DeveloperSettings {
     val mapStressTest = kotlinx.coroutines.flow.MutableStateFlow(false)
 }
 
-private val uiModule = module {
+/**
+ * Plain in-memory state shared between screens (cross-tab requests, debug switches).
+ * Also loaded by the UI tests, so a holder added here and injected by [com.rideak.shared.navigation.RideakApp]
+ * cannot be forgotten in the test graph.
+ */
+internal val uiStateModule = module {
     single { DeveloperSettings() }
-    single { AppSettings(get()) }
     single { PlacesFocus() }
     single { MapFocus() }
+}
+
+private val uiModule = module {
+    includes(uiStateModule)
+    single { AppSettings(get()) }
     single<RegionSource> { BundledRegions() }
     single<OfflineMapStore> { MapLibreOfflineMapStore() }
     viewModelOf(::OfflineMapViewModel)
