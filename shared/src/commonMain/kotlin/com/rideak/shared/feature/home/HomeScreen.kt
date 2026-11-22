@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import com.rideak.shared.feature.map.Counter
+import com.rideak.shared.feature.ride.rideButtonLabel
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import com.rideak.shared.resources.Res
@@ -87,13 +88,8 @@ fun HomeScreen(
             CategoryRow(state.categories, onOpenCategory)
             TerritoryCard(state.exploredCells, territory = state.territory)
             StatsRow(state)
-            val active = state.activeRide
             AdventureButton(
-                text = when {
-                    active == null -> "PARTIR\nÀ L'AVENTURE"
-                    active.recovered -> "SORTIE\nINTERROMPUE"
-                    else -> "RETOUR\nÀ LA SORTIE"
-                },
+                text = rideButtonLabel(state.activeRide),
                 icon = RideakIcons.Bike,
                 minHeight = 64.dp,
                 onClick = onRide,

@@ -22,6 +22,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.rideak.data.recorder.RecorderState
+import com.rideak.data.recorder.RideRecorder
 import com.rideak.shared.designsystem.RideakTheme
 import com.rideak.shared.designsystem.components.RideakBottomBar
 import com.rideak.shared.feature.home.HomeScreen
@@ -66,6 +68,7 @@ private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
     val navController = rememberNavController()
     val placesFocus = koinInject<PlacesFocus>()
     val mapFocus = koinInject<MapFocus>()
+    val recorder = koinInject<RideRecorder>()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
     val selectedIndex = topLevelDestinations.indexOfFirst { top ->
@@ -100,9 +103,11 @@ private fun MainNavigation(startRide: Boolean, onRideStarted: () -> Unit) {
             }
             composable<MapRoute> { WorldMapScreen() }
             composable<RidesRoute> {
+                val recording by recorder.state.collectAsStateWithLifecycle()
                 RidesScreen(
                     onOpenRide = { navController.navigate(RideSummaryRoute(it)) },
                     onStartRide = { navController.navigate(RideRoute) { launchSingleTop = true } },
+                    activeRide = recording as? RecorderState.Active,
                 )
             }
             composable<PlacesRoute> {
