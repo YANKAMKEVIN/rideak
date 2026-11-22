@@ -49,6 +49,10 @@ enum class MapFilter(val categories: Set<PlaceCategory>?, private val nothingYet
         val categories = categories ?: return null
         return if (categories.sumOf { places[it]?.found ?: 0 } == 0) "$nothingYet : pars à leur recherche !" else null
     }
+
+    /** The filter to keep when a place of [category] is opened on the map: this one if it shows it, else "Tout". */
+    fun showing(category: PlaceCategory): MapFilter =
+        if (categories == null || category in categories) this else ALL
 }
 
 /** The four illustrated pins (design/generated/pin_*.webp) and the categories each one marks. */
@@ -150,6 +154,14 @@ class MapViewModel(
     /** Tapping the selected card again shows everything. */
     fun selectFilter(selected: MapFilter) {
         filter.value = if (filter.value == selected) MapFilter.ALL else selected
+    }
+
+    /**
+     * A place opened from "Lieux" must show its pin: a card that hides its category gives way to "Tout".
+     * A card that already shows it stays selected.
+     */
+    fun reveal(place: Place) {
+        filter.value = filter.value.showing(place.category)
     }
 
     private fun build(ridden: Ridden, zones: List<PrivacyZone>, share: Boolean, filter: MapFilter): WorldMapUiState {

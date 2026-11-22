@@ -108,4 +108,42 @@ class MapViewModelTest {
         assertEquals("Aucune rivière ni plan d'eau découvert pour l'instant : pars à leur recherche !", MapFilter.RIVERS.emptyHint(places))
         assertEquals("Aucune forêt découverte pour l'instant : pars à leur recherche !", MapFilter.FORESTS.emptyHint(places), "no forest in the region")
     }
+
+    @Test
+    fun openingAPlaceKeepsACardThatShowsItAndDropsOneThatHidesIt() {
+        assertEquals(MapFilter.PARKS, MapFilter.PARKS.showing(PlaceCategory.PARK))
+        assertEquals(MapFilter.RIVERS, MapFilter.RIVERS.showing(PlaceCategory.LAKE))
+        assertEquals(MapFilter.CITIES, MapFilter.CITIES.showing(PlaceCategory.LANDMARK))
+        assertEquals(MapFilter.ALL, MapFilter.ALL.showing(PlaceCategory.FOREST))
+        assertEquals(MapFilter.ALL, MapFilter.PARKS.showing(PlaceCategory.RIVER))
+        // No card shows viewpoints: only "Tout" pins them.
+        assertEquals(MapFilter.ALL, MapFilter.FORESTS.showing(PlaceCategory.VIEWPOINT))
+    }
+
+    @Test
+    fun aPlaceOpenedFromPlacesIsPinnedEvenUnderAnotherCard() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val rides = FakeRideRepository()
+        val park = Place(PlaceId("park"), "Parc", PlaceCategory.PARK, PlaceGeometry.Point(GeoPoint(49.0364, 2.0770)))
+        val river = Place(PlaceId("river"), "L'Oise", PlaceCategory.RIVER, PlaceGeometry.Point(GeoPoint(49.0364, 2.0790)))
+        val region = ExplorationRegion(
+            RegionId("r"), "Cergy",
+            listOf(PlaceGeometry.Polygon(listOf(GeoPoint(49.0, 2.0), GeoPoint(49.0, 2.2), GeoPoint(49.1, 2.2)))),
+            "tile17", emptySet(),
+        )
+        val vm = MapViewModel(rides, DeveloperSettings(), { listOf(RegionPackCodec.Pack(region, "OSM", listOf(park, river))) }, FakePrivacyZoneRepository())
+        backgroundScope.launch { vm.state.collect {} }
+        rides.finishRide("r1")
+        vm.awaitState { it.shownPlaces.size == 2 }
+
+        vm.selectFilter(MapFilter.PARKS)
+        vm.awaitState { it.filter == MapFilter.PARKS && river !in it.shownPlaces }
+
+        vm.reveal(park)
+        assertEquals(MapFilter.PARKS, vm.awaitState { true }.filter, "the park card already shows the park")
+
+        vm.reveal(river)
+        val shown = vm.awaitState { it.filter == MapFilter.ALL }
+        assertEquals(setOf("Parc", "L'Oise"), shown.shownPlaces.map { it.name }.toSet())
+    }
 }
